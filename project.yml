@@ -12,13 +12,13 @@ configs:
 settings:
   base:
     PRODUCT_NAME: iTrafficPlus
-    MACOSX_DEPLOYMENT_TARGET: "10.15"
+    MACOSX_DEPLOYMENT_TARGET: "11.0"
 
 targets:
   iTrafficPlus:
     type: application
     platform: macOS
-    deploymentTarget: "10.15"
+    deploymentTarget: "11.0"
     sources:
       - path: ITrafficMonitorForMac
         excludes:

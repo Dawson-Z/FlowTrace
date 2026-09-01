@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct StatusBarView: View {
-    @ObservedObject var statusDataModel = SharedStore.statusDataModel
+    @StateObject var statusDataModel = SharedStore.statusDataModel
     
     var body: some View {
         HStack(alignment: .center) {

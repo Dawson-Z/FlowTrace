@@ -59,7 +59,7 @@ class Network {
         if !globalModel.viewShowing && sleepCounter >= MAX_COUNT {
             globalModel.isSleepDeep = true
             if globalModel.controllerHaveBeenReleased == false {
-                print("into sleep deep, release controller")
+                AppLogger.network.info("entering deep sleep; releasing popover controller")
                 DispatchQueue.main.async {
                     AppDelegate.popover.contentViewController = nil
                 }

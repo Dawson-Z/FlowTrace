@@ -10,14 +10,17 @@ import Cocoa
 import Darwin
 
 func formatBytes(bytes: Int) -> String {
-    let kbyte = Float(bytes) / 1024
-    if kbyte <= 0 {
-        return "0 KB/s"
-    }
+    if bytes <= 0 { return "0 KB/s" }
+    let kbyte = Double(bytes) / 1024
     if kbyte < 1024 {
         return String(format:"%.1f KB/s", kbyte)
     }
-    return String(format:"%.1f MB/s", kbyte / 1024)
+    let mbyte = kbyte / 1024
+    if mbyte < 1024 {
+        return String(format:"%.1f MB/s", mbyte)
+    }
+    let gbyte = mbyte / 1024
+    return String(format:"%.1f GB/s", gbyte)
 }
 
 /// Compact unit format for list rows: "55K", "9.1M", "1.2G", "—" for 0.

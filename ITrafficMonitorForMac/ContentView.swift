@@ -8,8 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
-    @ObservedObject var viewModel = SharedStore.listViewModel
-    @ObservedObject var historyStore = SharedStore.historyStore
+    // `@StateObject` rather than `@ObservedObject` so SwiftUI doesn't
+    // re-subscribe to the singleton on every view re-creation. The value
+    // source is a singleton that lives for the lifetime of the app; this is
+    // exactly what `@StateObject(wrappedValue:)` is for.
+    @StateObject var viewModel = SharedStore.listViewModel
+    @StateObject var historyStore = SharedStore.historyStore
 
     var body: some View {
         VStack(spacing: 0) {

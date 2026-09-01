@@ -117,7 +117,7 @@ final class NettopRunner {
             try task.run()
             self.process = task
         } catch {
-            print("[NettopRunner] failed to spawn: \(error)")
+            AppLogger.nettopRunner.error("failed to spawn: \(error.localizedDescription)")
             if shouldRestart {
                 queue.asyncAfter(deadline: .now() + 1.0) { [weak self] in
                     self?.spawn()

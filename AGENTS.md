@@ -59,6 +59,8 @@ xcodebuild build -project iTrafficPlus.xcodeproj \
 
 ## Fork-specific conventions
 
+- **Deployment target is macOS 11.0, not 10.15.** The upstream's 10.15 floor was set when the project shipped to Catalina users who had no other way to see per-process traffic; the fork is local and runs on a Big Sur+ Mac, so the new floor is just "what makes `Logger` and `@StateObject` un-annotated". If the experiment starts needing 13/14-only SwiftUI (`NavigationStack`, `Charts`, …) we will raise again here rather than pepper `@available` through the source.
+
 - **Feature modules live under `iTrafficPlus/Feature/<Name>/`** and are self-contained: each module owns its view(s), its model, and any pure-function helpers. `iTrafficPlus/Feature/...` files are added to the Xcode target the same way `ITrafficMonitorForMac/...` files are.
 
 - **Experiments that touch the upstream code must document the touch point** in this AGENTS.md. If you change `ContentView.swift` to host a new search bar, say so here under "Active experiments". Without that note, the next person has to read the diff to know which upstream file is no longer vanilla.
@@ -69,3 +71,4 @@ xcodebuild build -project iTrafficPlus.xcodeproj \
 
 - **Process search bar (0.3.0 milestone 1).** Adds a `SearchFilter` to `ListViewModel` and a `ProcessSearchBar` view at the top of the popover. Touches `ContentView.swift` and `ListViewModel.swift`.
 - **In-memory history ring buffer (0.3.0 milestone 1).** Adds `RingBuffer`, `HistoryStore`, and `HistoryView` (a 60-sample sparkline) at the bottom of the popover. Touches `Network.swift` (to push frames into the store) and `ContentView.swift` (to host the view).
+- **0.3.0 milestone 2 (refactor-only).** No new features; replaces every `print` with `Logger` (via `iTrafficPlus/Feature/Logging/AppLogger.swift`), adds a GB tier to `Utils.formatBytes` so the menu bar does not say "1024.0 MB/s", and migrates the @ObservedObject-on-singletons cases to @StateObject. The non-View @ObservedObject cases (on `Network` and `AppDelegate`) are downgraded to plain references because the wrapper is a no-op on a type with no `body`. Touches `AppDelegate.swift`, `Network.swift`, `NettopRunner.swift`, `ContentView.swift`, `StatusBarView.swift`, `Utils.swift`.
