@@ -1,0 +1,79 @@
+name: iTrafficPlus
+
+options:
+  minimumXcodeGenVersion: 2.44.0
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    PRODUCT_NAME: iTrafficPlus
+    MACOSX_DEPLOYMENT_TARGET: "10.15"
+
+targets:
+  iTrafficPlus:
+    type: application
+    platform: macOS
+    deploymentTarget: "10.15"
+    sources:
+      - path: ITrafficMonitorForMac
+        excludes:
+          - Info.plist
+          - ITrafficMonitorForMac.entitlements
+          - Assets.xcassets
+          - "Preview Content"
+          - Base.lproj
+      - path: iTrafficPlus
+      - path: ITrafficMonitorForMac/Assets.xcassets
+        buildPhase: resources
+      - path: ITrafficMonitorForMac/Preview Content/Preview Assets.xcassets
+        buildPhase: resources
+      - path: ITrafficMonitorForMac/Base.lproj/Main.storyboard
+        buildPhase: resources
+    entitlements:
+      path: ITrafficMonitorForMac/ITrafficMonitorForMac.entitlements
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Automatic
+        COMBINE_HIDPI_IMAGES: YES
+        CURRENT_PROJECT_VERSION: 1
+        DEVELOPMENT_ASSET_PATHS: "\"ITrafficMonitorForMac/Preview Content\""
+        ENABLE_PREVIEWS: YES
+        INFOPLIST_FILE: ITrafficMonitorForMac/Info.plist
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
+        MARKETING_VERSION: 0.3.0
+        PRODUCT_BUNDLE_IDENTIFIER: local.iTrafficPlus
+        SWIFT_VERSION: 5.0
+      configs:
+        # Notarisation requires the hardened runtime. Release only — on Debug it
+        # would block the debugger unless Xcode injects get-task-allow.
+        # CODE_SIGN_IDENTITY stays ad-hoc ("-") above so a fresh `git clone` still
+        # builds; the public release pipeline is intentionally not wired up here
+        # (this is a local research fork, not a redistributable product).
+        Release:
+          ENABLE_HARDENED_RUNTIME: YES
+
+schemes:
+  iTrafficPlus:
+    build:
+      targets:
+        iTrafficPlus: all
+    run:
+      config: Debug
+    analyze:
+      config: Debug
+    profile:
+      config: Release
+    archive:
+      config: Release
+    test:
+      config: Debug
