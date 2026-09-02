@@ -7,6 +7,30 @@
 
 import Foundation
 
+/// How `ListViewModel.sort(items:)` orders the rows the user sees.
+///
+/// Kept in this file (rather than as a top-level enum) so any change to the
+/// order is right next to the comparator that implements it. Adding a new
+/// mode means: ① a new case, ② a new Picker option in `ContentView`,
+/// ③ a new branch in `sort(items:)` — all three sit within ~30 lines.
+enum ListSortMode: String, CaseIterable, Identifiable {
+    case total      // in + out, descending — the default
+    case download   // in  only, descending
+    case upload     // out only, descending
+    case name       // A-Z, case-insensitive
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .total:    return "Total"
+        case .download: return "Down"
+        case .upload:   return "Up"
+        case .name:     return "Name"
+        }
+    }
+}
+
 class ListViewModel: ObservableObject {
 
     @Published var items: [ProcessEntity] = []
@@ -15,6 +39,10 @@ class ListViewModel: ObservableObject {
     /// `updateData` — keeping the merge and the filter in different layers
     /// means a keystroke does not invalidate the cached PID-merge work.
     @Published var searchText: String = ""
+    /// Sort order. The Picker in `ContentView` writes here; `sort(items:)`
+    /// reads it. Switches do not trigger a re-merge of the underlying
+    /// `items` array — only the rendered order changes.
+    @Published var sortMode: ListSortMode = .total
     var globalModel = SharedStore.globalModel
     var gcCounter = 0
 
@@ -47,14 +75,27 @@ class ListViewModel: ObservableObject {
         items = sort(items: items)
     }
 
+    /// Stable on total-rate first; within ties, name is the secondary key.
+    /// For the `.name` mode the comparator returns `lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending`
+    /// so a re-sort under the same data is identical to a no-op.
     func sort(items: [ProcessEntity]) -> [ProcessEntity] {
-        return items.sorted {  (lhs:ProcessEntity, rhs:ProcessEntity) in
-            let lTotalRate = lhs.inBytesPerSec + lhs.outBytesPerSec
-            let rTotalRate = rhs.inBytesPerSec + rhs.outBytesPerSec
-            if lTotalRate != rTotalRate {
-                return lTotalRate > rTotalRate
+        let mode = sortMode
+        return items.sorted { (lhs, rhs) in
+            switch mode {
+            case .total:
+                let lTotal = lhs.inBytesPerSec + lhs.outBytesPerSec
+                let rTotal = rhs.inBytesPerSec + rhs.outBytesPerSec
+                if lTotal != rTotal { return lTotal > rTotal }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            case .download:
+                if lhs.inBytesPerSec != rhs.inBytesPerSec { return lhs.inBytesPerSec > rhs.inBytesPerSec }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            case .upload:
+                if lhs.outBytesPerSec != rhs.outBytesPerSec { return lhs.outBytesPerSec > rhs.outBytesPerSec }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            case .name:
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
-            return lhs.name < rhs.name
         }
     }
 

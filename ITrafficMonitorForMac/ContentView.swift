@@ -46,6 +46,30 @@ struct ContentView: View {
 
             Divider()
 
+            // Sort selector (milestone 3 experiment). Picker writes
+            // `viewModel.sortMode`; `ListViewModel.updateData` picks it up on
+            // the next nettop frame. To make the switch feel instant, we
+            // also call `viewModel.sort` on selection — but the Picker binding
+            // alone is enough since `updateData` runs every 2 s. Kept inside
+            // its own divider line so it reads as "filter" semantically.
+            HStack(spacing: 6) {
+                Text("Sort")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                Picker("", selection: $viewModel.sortMode) {
+                    ForEach(ListSortMode.allCases) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .font(.system(size: 10))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+
+            Divider()
+
             // Process list (ScrollView + LazyVStack for full layout control;
             // SwiftUI List adds platform-specific leading insets that hid icons.)
             ScrollView {
