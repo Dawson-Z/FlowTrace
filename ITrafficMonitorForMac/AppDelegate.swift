@@ -26,6 +26,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        // Tee'd via Log.* so the line ends up in both os.log and
+        // ~/Library/Logs/iTrafficPlus.log. See Feature/Logging/AppLogger.swift
+        // for why both sinks are needed on macOS 11+ ad-hoc-signed builds.
+        Log.appDelegate.info("applicationDidFinishLaunching entered; log file=\(LogFileSink.logFileURL?.path ?? "off")")
         self.contentView = ContentView()
         let statusBarView = AnyView(StatusBarView())
         self.network = Network()
@@ -59,7 +63,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     
     @objc func togglePopover(_ sender: AnyObject?) {
-        AppLogger.appDelegate.debug("popover click")
+        Log.appDelegate.debug("popover click")
         self.globalModel.viewShowing = true
         NSApp.activate(ignoringOtherApps: true)
 
@@ -80,7 +84,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         parentWindow.addChildWindow(popoverVCWindow, ordered: .above)
                     }
                 } else {
-                    AppLogger.appDelegate.error("Failed to add child window")
+                    Log.appDelegate.error("Failed to add child window")
                 }
 
 
@@ -96,12 +100,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillResignActive(_ aNotification: Notification)
     {
-        AppLogger.appDelegate.debug("lost focus")
+        Log.appDelegate.debug("lost focus")
         self.globalModel.viewShowing = false
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
-        AppLogger.appDelegate.info("applicationWillTerminate")
+        Log.appDelegate.info("applicationWillTerminate")
     }
 
 }

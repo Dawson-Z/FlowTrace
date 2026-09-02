@@ -25,6 +25,13 @@ class Network {
     }()
 
     public func startListenNetwork() {
+        // os.log's `info(_:)` takes an `OSLogMessage`, not a `String`, and
+        // interpolation values default to .private — visible to the running
+        // process only. Adding `privacy: .public` makes the value stream to
+        // Console.app and `log stream`. Literal string parts are always
+        // public; only the `\(...)` slot needs the explicit privacy.
+        let cap = self.historyStore.capacity
+        Log.network.info("NettopRunner starting; history capacity=\(cap)")
         runner.start()
     }
 
@@ -59,7 +66,7 @@ class Network {
         if !globalModel.viewShowing && sleepCounter >= MAX_COUNT {
             globalModel.isSleepDeep = true
             if globalModel.controllerHaveBeenReleased == false {
-                AppLogger.network.info("entering deep sleep; releasing popover controller")
+                Log.network.info("entering deep sleep; releasing popover controller")
                 DispatchQueue.main.async {
                     AppDelegate.popover.contentViewController = nil
                 }
