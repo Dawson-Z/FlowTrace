@@ -111,6 +111,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Settings window
+    //
+    // We do not use the macOS 13+ `Settings { }` scene because the deployment
+    // target is 11.0. Instead, the ⚙ button in `ContentView`'s header fires
+    // this action, which lazily creates a single `NSWindow` and reuses it on
+    // every subsequent click.
+    //
+    // Reusing the window (vs. a fresh one per click) is deliberate: a new
+    // window each time would race with the system window animator and could
+    // appear stacked on top of the previous one if the user double-clicks
+    // the button. Lazy creation also means a user who never opens Settings
+    // pays no memory cost.
+
+    private var settingsWindow: NSWindow?
+
+    @objc func showSettingsWindow() {
+        if let window = settingsWindow, window.isVisible {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let view = SettingsView(settings: SettingsStore.shared)
+        let host = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: host)
+        window.title = "Settings"
+        window.styleMask = [.titled, .closable]
+        window.isReleasedWhenClosed = false
+        window.center()
+        settingsWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        Log.appDelegate.info("settings window opened")
+    }
+
     func applicationWillResignActive(_ aNotification: Notification)
     {
         Log.appDelegate.debug("lost focus")

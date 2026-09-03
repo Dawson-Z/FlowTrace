@@ -32,6 +32,19 @@ struct ContentView: View {
                 MenuItem(id: "menu.github", text: "Upstream", action: {
                     NSWorkspace.shared.open(URL(string: "https://github.com/foamzou/ITraffic-monitor-for-mac")!)
                 })
+                // Settings cog. Unicode glyph (U+2699) instead of an SF Symbol
+                // because a Symbol would need `.font()` at menu-bar sizes and
+                // would still get resized out of proportion — see AGENTS.md
+                // rule on SF Symbols.
+                Text("⚙")
+                    .font(.system(size: 14))
+                    .foregroundColor(.gray)
+                    .contentShape(Rectangle())
+                    .animation(.none)
+                    .onTapGesture {
+                        NSApp.sendAction(#selector(AppDelegate.showSettingsWindow), to: nil, from: nil)
+                    }
+                    .help("Settings")
                 MenuItem(id: "menu.quit", text: "Quit", action: AppDelegate.quit)
             }
             .padding(.horizontal, 14)
