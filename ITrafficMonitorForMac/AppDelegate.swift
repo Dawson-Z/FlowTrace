@@ -30,6 +30,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // ~/Library/Logs/iTrafficPlus.log. See Feature/Logging/AppLogger.swift
         // for why both sinks are needed on macOS 11+ ad-hoc-signed builds.
         Log.appDelegate.info("applicationDidFinishLaunching entered; log file=\(LogFileSink.logFileURL?.path ?? "off")")
+
+        // Wire SQLite history persistence. Order matters: this MUST run
+        // before any `historyStore.append` happens, otherwise the first
+        // frames after launch are written to the in-memory store only and
+        // never make it to disk. Network.startListenNetwork runs later
+        // in this same method, so attach is safe here.
+        if let persistence = HistoryPersistence(dbURL: HistoryPersistence.defaultDbURL()) {
+            SharedStore.attachHistoryPersistence(persistence)
+            Log.appDelegate.info("history persistence attached at \(persistence.dbURL.path)")
+        } else {
+            Log.appDelegate.error("history persistence failed to open; falling back to in-memory only")
+        }
+
         self.contentView = ContentView()
         let statusBarView = AnyView(StatusBarView())
         self.network = Network()

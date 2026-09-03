@@ -18,6 +18,7 @@ enum Log {
     static let appDelegate = LogHelper(category: "appDelegate")
     static let network     = LogHelper(category: "network")
     static let nettopRunner = LogHelper(category: "nettopRunner")
+    static let persistence = LogHelper(category: "persistence")
 }
 
 struct LogHelper {
@@ -28,6 +29,7 @@ struct LogHelper {
         case "appDelegate":  return AppLogger.appDelegate
         case "network":      return AppLogger.network
         case "nettopRunner": return AppLogger.nettopRunner
+        case "persistence":  return AppLogger.persistence
         default:             return AppLogger.appDelegate
         }
     }

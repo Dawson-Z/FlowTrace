@@ -39,6 +39,8 @@ enum AppLogger {
     static let network = Logger(subsystem: subsystem, category: "network")
     /// Service/NettopRunner.swift — nettop subprocess, debounce, restart.
     static let nettopRunner = Logger(subsystem: subsystem, category: "nettopRunner")
+    /// Feature/History/HistoryPersistence.swift — SQLite open, schema, append, prune.
+    static let persistence = Logger(subsystem: subsystem, category: "persistence")
 }
 
 /// File sink used when os.log is unavailable to the user. Writes one line per
