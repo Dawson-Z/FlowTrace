@@ -28,6 +28,13 @@ targets:
           - "Preview Content"
           - Base.lproj
       - path: iTrafficPlus
+        excludes:
+          # Test target lives in a sibling directory inside this one; if we
+          # do not exclude it here, xcodegen's path-based source discovery
+          # adds the test files to the *application* target as well, which
+          # then tries to ship `import XCTest` inside a regular .app and
+          # double-emits the main target's .swiftmodule.
+          - "iTrafficPlusTests/**"
       - path: ITrafficMonitorForMac/Assets.xcassets
         buildPhase: resources
       - path: ITrafficMonitorForMac/Preview Content/Preview Assets.xcassets
@@ -62,6 +69,29 @@ targets:
         Release:
           ENABLE_HARDENED_RUNTIME: YES
 
+  iTrafficPlusTests:
+    # Pure-Swift unit tests. No UI, no AppKit, no SwiftUI — `ListViewModel.sort`
+    # is value-in / value-out so the test target only needs the model layer.
+    # We do *not* need access to `SharedStore` (the singleton) for the
+    # sort tests; ListViewModel is constructed with default values, the
+    # globalModel reference is unused by sort(), and the test never calls
+    # updateData. If a future test wants SharedStore, instantiate it in
+    # a setUp() with a fresh ListViewModel attached.
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "11.0"
+    sources:
+      - path: iTrafficPlusTests
+    dependencies:
+      - target: iTrafficPlus
+    settings:
+      base:
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/iTrafficPlus.app/Contents/MacOS/iTrafficPlus"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+
 schemes:
   iTrafficPlus:
     build:
@@ -77,3 +107,5 @@ schemes:
       config: Release
     test:
       config: Debug
+      targets:
+        - iTrafficPlusTests
