@@ -20,7 +20,7 @@ struct ProcessSearchBar: View {
             Text("⌕")
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
-            TextField("Filter processes", text: $viewModel.searchText)
+            TextField(Loc.l("Filter processes"), text: $viewModel.searchText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
             if !viewModel.searchText.isEmpty {

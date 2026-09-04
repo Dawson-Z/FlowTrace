@@ -22,7 +22,7 @@ struct HistoryView: View {
 
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Text("last 2 min")
+                Text(Loc.l("last 2 min"))
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)
                 Spacer()
@@ -43,7 +43,7 @@ struct HistoryView: View {
             // formatBytesCompact's 0.05 KB/s threshold, so no special-case
             // blanking is needed here.
             HStack(spacing: 6) {
-                Text("today peak")
+                Text(Loc.l("today peak"))
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)
                 Text("↓ \(formatBytesCompact(bytes: summary.todayPeakIn))")
@@ -53,7 +53,7 @@ struct HistoryView: View {
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(.secondary)
                 Spacer()
-                Text("24 h avg")
+                Text(Loc.l("24 h avg"))
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)
                 Text("↓ \(formatBytesCompact(bytes: summary.avgLast24hIn))")

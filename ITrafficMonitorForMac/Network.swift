@@ -71,11 +71,17 @@ class Network {
 
         // Milestone 11: react to refresh-interval changes in Settings by
         // rebuilding every nettop subprocess with the new `-s` value.
+        //
+        // The sink MUST use the value carried by the event (`newInterval`):
+        // @Published emits *before* the property is written, so re-reading
+        // `SettingsStore.shared.refreshInterval` here would yield the previous
+        // value and `applyRefreshInterval` would silently no-op (the reported
+        // "takes effect one click late" bug).
         SettingsStore.shared.$refreshInterval
             .dropFirst()
             .removeDuplicates()
-            .sink { [weak self] _ in
-                self?.applyRefreshInterval()
+            .sink { [weak self] newInterval in
+                self?.applyRefreshInterval(to: newInterval)
             }
             .store(in: &cancellables)
     }
@@ -94,8 +100,7 @@ class Network {
     /// A shorter interval makes the UI refresh more often but costs more
     /// nettop CPU; the rate normalisation in `parser` reads `interval`, so
     /// it must be current before the new subprocesses produce frames.
-    private func applyRefreshInterval() {
-        let newInterval = SettingsStore.shared.refreshInterval
+    private func applyRefreshInterval(to newInterval: Int) {
         guard newInterval != interval else { return }
         interval = newInterval
         Log.network.info("refresh interval changed to \(newInterval)s; restarting collectors")

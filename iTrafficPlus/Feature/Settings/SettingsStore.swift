@@ -59,6 +59,13 @@ final class SettingsStore: ObservableObject {
     /// the cost of more nettop CPU. 1 / 2 / 5 s.
     @Published var refreshInterval: Int
 
+    // MARK: - Localization
+
+    /// Manual language override. `nil` = follow the system. One of
+    /// "zh-Hans" / "en" / "zh-Hant". Read by `LocalizationManager` to pick
+    /// the `.lproj` bundle; changing it repaints the UI immediately.
+    @Published var languageOverride: String?
+
     private enum K {
         static let launchAtLogin              = "launchAtLogin"
         static let defaultSortModeRaw         = "defaultSortModeRaw"
@@ -67,6 +74,7 @@ final class SettingsStore: ObservableObject {
         static let showUploadInStatusBar      = "showUploadInStatusBar"
         static let historyRetentionDays       = "historyRetentionDays"
         static let refreshInterval            = "refreshInterval"
+        static let languageOverride           = "languageOverride"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -86,6 +94,7 @@ final class SettingsStore: ObservableObject {
         self._showUploadInStatusBar   = Published(initialValue: defaults.object(forKey: K.showUploadInStatusBar) as? Bool ?? true)
         self._historyRetentionDays    = Published(initialValue: defaults.object(forKey: K.historyRetentionDays) as? Int ?? 7)
         self._refreshInterval         = Published(initialValue: defaults.object(forKey: K.refreshInterval) as? Int ?? 2)
+        self._languageOverride        = Published(initialValue: defaults.string(forKey: K.languageOverride))
 
         // Each sink starts with the just-loaded value; `.dropFirst()` skips
         // that initial replay, so only real user edits round-trip to disk.
@@ -126,6 +135,9 @@ final class SettingsStore: ObservableObject {
             .store(in: &cancellables)
         $refreshInterval.dropFirst()
             .sink { [weak self] v in self?.defaults.set(v, forKey: K.refreshInterval) }
+            .store(in: &cancellables)
+        $languageOverride.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.languageOverride) }
             .store(in: &cancellables)
     }
 }

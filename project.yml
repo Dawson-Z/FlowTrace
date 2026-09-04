@@ -27,6 +27,9 @@ targets:
           - Assets.xcassets
           - "Preview Content"
           - Base.lproj
+          - en.lproj
+          - zh-Hans.lproj
+          - zh-Hant.lproj
       - path: iTrafficPlus
         excludes:
           # Test target lives in a sibling directory inside this one; if we
@@ -40,6 +43,12 @@ targets:
       - path: ITrafficMonitorForMac/Preview Content/Preview Assets.xcassets
         buildPhase: resources
       - path: ITrafficMonitorForMac/Base.lproj/Main.storyboard
+        buildPhase: resources
+      - path: ITrafficMonitorForMac/en.lproj
+        buildPhase: resources
+      - path: ITrafficMonitorForMac/zh-Hans.lproj
+        buildPhase: resources
+      - path: ITrafficMonitorForMac/zh-Hant.lproj
         buildPhase: resources
     entitlements:
       path: ITrafficMonitorForMac/ITrafficMonitorForMac.entitlements

@@ -25,7 +25,7 @@ struct InterfaceSummaryView: View {
 
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Text("interface")
+                Text(Loc.l("interface"))
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)
                 Spacer()
@@ -66,7 +66,7 @@ struct InterfaceSummaryView: View {
                 ForEach(InterfaceCategory.allCases) { cat in
                     HStack(spacing: 3) {
                         Circle().fill(cat.color).frame(width: 6, height: 6)
-                        Text(cat.rawValue)
+                        Text(Loc.l(cat.rawValue))
                             .font(.system(size: 8))
                             .foregroundColor(.secondary)
                         Text("↓\(formatBytesCompact(bytes: snapshot.bytesIn[cat] ?? 0))")
@@ -100,7 +100,7 @@ struct InterfaceTopListView: View {
             // Header — click to expand/collapse.
             Button(action: { expanded.toggle() }) {
                 HStack(spacing: 6) {
-                    Text("top processes")
+                    Text(Loc.l("top processes"))
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(.secondary)
                     Text(expanded ? "▾" : "▸")

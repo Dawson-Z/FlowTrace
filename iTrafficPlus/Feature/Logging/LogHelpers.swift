@@ -21,6 +21,7 @@ enum Log {
     static let persistence = LogHelper(category: "persistence")
     static let settings = LogHelper(category: "settings")
     static let interface = LogHelper(category: "interface")
+    static let l10n = LogHelper(category: "l10n")
 }
 
 struct LogHelper {

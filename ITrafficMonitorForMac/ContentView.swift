@@ -19,6 +19,9 @@ struct ContentView: View {
     // setting is the only thing that changes its behaviour, and we want the
     // change to apply on the next keystroke, not on the next app launch.
     @ObservedObject var settings = SettingsStore.shared
+    // Observing LocalizationManager repaints the whole popover when the
+    // user changes the language override, so every Loc.l(...) re-reads.
+    @ObservedObject private var l10n = LocalizationManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -34,7 +37,7 @@ struct ContentView: View {
                 // out of scope here — there is no release channel and no
                 // upsell surface to render. The header just shows the logo
                 // and the trailing GitHub / Quit links.
-                MenuItem(id: "menu.github", text: "Upstream", action: {
+                MenuItem(id: "menu.github", text: Loc.l("Upstream"), action: {
                     NSWorkspace.shared.open(URL(string: "https://github.com/foamzou/ITraffic-monitor-for-mac")!)
                 })
                 // Settings cog. Unicode glyph (U+2699) instead of an SF Symbol
@@ -49,8 +52,8 @@ struct ContentView: View {
                     .onTapGesture {
                         NSApp.sendAction(#selector(AppDelegate.showSettingsWindow), to: nil, from: nil)
                     }
-                    .help("Settings")
-                MenuItem(id: "menu.quit", text: "Quit", action: AppDelegate.quit)
+                    .help(Loc.l("Settings"))
+                MenuItem(id: "menu.quit", text: Loc.l("Quit"), action: AppDelegate.quit)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -71,22 +74,51 @@ struct ContentView: View {
             // alone is enough since `updateData` runs every 2 s. Kept inside
             // its own divider line so it reads as "filter" semantically.
             HStack(spacing: 6) {
-                Text("Sort")
+                Text(Loc.l("Sort"))
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
                 Picker("", selection: $viewModel.sortMode) {
                     ForEach(ListSortMode.allCases) { mode in
-                        Text(mode.label).tag(mode)
+                        Text(Loc.l(mode.label)).tag(mode)
                     }
                 }
                 .labelsHidden()
                 .pickerStyle(.segmented)
                 .font(.system(size: 10))
+                // macOS's segmented Picker bridges to NSSegmentedControl and
+                // does NOT refresh existing segment labels when only their
+                // text changes. Rebuilding the picker on a locale change
+                // forces fresh (correctly-localised) labels.
+                .id(l10n.locale)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
 
             Divider()
+
+            // Column headers, aligned with ProcessRow's columns, so each
+            // sort option (Total / Down / Up / Name) maps onto a visible
+            // column rather than being an abstract ordering concept.
+            HStack(spacing: 8) {
+                Spacer().frame(width: 26)   // icon column placeholder
+                Text(Loc.l("Name"))
+                    .font(.system(size: 8))
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("↓")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+                Text("↑")
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+                Text(Loc.l("Total"))
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .frame(width: 48, alignment: .trailing)
+            }
+            .padding(.horizontal, 14)
 
             // Process list (ScrollView + LazyVStack for full layout control;
             // SwiftUI List adds platform-specific leading insets that hid icons.)
@@ -174,6 +206,12 @@ struct ProcessRow: View {
                     .foregroundColor(outActive ? .primary : Color.secondary.opacity(0.35))
                     .frame(width: 44, alignment: .trailing)
             }
+
+            // Total (in + out) — makes the "Total" sort key a visible column.
+            Text(formatBytesCompact(bytes: total))
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundColor(anyActive ? .primary : Color.secondary.opacity(0.35))
+                .frame(width: 48, alignment: .trailing)
         }
         .contentShape(Rectangle())
         .background(

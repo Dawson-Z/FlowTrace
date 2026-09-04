@@ -45,6 +45,8 @@ enum AppLogger {
     static let settings = Logger(subsystem: subsystem, category: "settings")
     /// Feature/Interface/* — socket-mode interface monitor + classifier.
     static let interface = Logger(subsystem: subsystem, category: "interface")
+    /// Feature/Localization/* — runtime language override plumbing.
+    static let l10n = Logger(subsystem: subsystem, category: "l10n")
 }
 
 /// File sink used when os.log is unavailable to the user. Writes one line per

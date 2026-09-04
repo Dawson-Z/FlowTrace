@@ -142,7 +142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let view = SettingsView(settings: SettingsStore.shared)
         let host = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: host)
-        window.title = "Settings"
+        window.title = Loc.l("Settings")
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.center()

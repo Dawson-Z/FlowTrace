@@ -6,27 +6,31 @@
 //
 
 import Foundation
+import Combine
 
 /// How `ListViewModel.sort(items:)` orders the rows the user sees.
 ///
+/// Case order = display order in the popover's sort Picker, deliberately
+/// matching the column order of the process list (Name / Down / Up / Total)
+/// so the sort options read left-to-right like the table itself.
 /// Kept in this file (rather than as a top-level enum) so any change to the
 /// order is right next to the comparator that implements it. Adding a new
 /// mode means: ① a new case, ② a new Picker option in `ContentView`,
-/// ③ a new branch in `sort(items:)` — all three sit within ~30 lines.
+/// ③ a new branch in `sort(items:mode:)` — all three sit within ~30 lines.
 enum ListSortMode: String, CaseIterable, Identifiable {
-    case total      // in + out, descending — the default
+    case name       // A-Z, case-insensitive
     case download   // in  only, descending
     case upload     // out only, descending
-    case name       // A-Z, case-insensitive
+    case total      // in + out, descending — the default
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .total:    return "Total"
+        case .name:     return "Name"
         case .download: return "Down"
         case .upload:   return "Up"
-        case .name:     return "Name"
+        case .total:    return "Total"
         }
     }
 }
@@ -58,6 +62,23 @@ class ListViewModel: ObservableObject {
     }()
     var globalModel = SharedStore.globalModel
     var gcCounter = 0
+    private var cancellables: Set<AnyCancellable> = []
+
+    init() {
+        // Re-sort the visible rows immediately when the user switches the
+        // sort mode. The sink MUST use the mode carried by the event:
+        // @Published emits *before* the property is written, so re-reading
+        // `self.sortMode` here would sort with the previous mode (the
+        // "takes effect one click late" bug).
+        $sortMode
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] newMode in
+                guard let self else { return }
+                self.items = self.sort(items: self.items, mode: newMode)
+            }
+            .store(in: &cancellables)
+    }
 
     public func updateData(newItems: [ProcessEntity]) {
         if shouldClearItemsForReduceSomeMemory() {
@@ -123,8 +144,14 @@ class ListViewModel: ObservableObject {
     /// For the `.name` mode the comparator returns `lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending`
     /// so a re-sort under the same data is identical to a no-op.
     func sort(items: [ProcessEntity]) -> [ProcessEntity] {
-        let mode = sortMode
-        return items.sorted { (lhs, rhs) in
+        sort(items: items, mode: sortMode)
+    }
+
+    /// Pure value-in / value-out variant taking the mode explicitly — used by
+    /// the `$sortMode` sink, which must sort with the *event's* mode rather
+    /// than the (not-yet-written) property. See the init comment.
+    func sort(items: [ProcessEntity], mode: ListSortMode) -> [ProcessEntity] {
+        items.sorted { (lhs, rhs) in
             switch mode {
             case .total:
                 let lTotal = lhs.inBytesPerSec + lhs.outBytesPerSec
