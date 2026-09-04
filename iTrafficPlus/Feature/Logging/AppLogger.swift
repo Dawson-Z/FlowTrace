@@ -43,6 +43,8 @@ enum AppLogger {
     static let persistence = Logger(subsystem: subsystem, category: "persistence")
     /// Feature/Settings/* — Preferences read/write, launch-at-login registration.
     static let settings = Logger(subsystem: subsystem, category: "settings")
+    /// Feature/Interface/* — socket-mode interface monitor + classifier.
+    static let interface = Logger(subsystem: subsystem, category: "interface")
 }
 
 /// File sink used when os.log is unavailable to the user. Writes one line per

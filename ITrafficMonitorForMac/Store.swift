@@ -25,6 +25,10 @@ enum SharedStore {
     // ContentView is created in response to a status-bar click, which
     // happens strictly later.
     static var historyStore = HistoryStore(capacity: 60)
+    // Latest per-interface-category aggregate. Kept as its own singleton so
+    // a second nettop (socket mode, in InterfaceMonitor) can publish into it
+    // without coupling to the process-level data path (milestone 9).
+    static var interfaceModel = InterfaceModel()
 
     /// Wire SQLite persistence into the singleton. Must be called from
     /// `applicationDidFinishLaunching` (or any point strictly before the
@@ -45,5 +49,6 @@ extension View {
         .environmentObject(SharedStore.statusDataModel)
         .environmentObject(SharedStore.globalModel)
         .environmentObject(SharedStore.historyStore)
+        .environmentObject(SharedStore.interfaceModel)
     }
 }

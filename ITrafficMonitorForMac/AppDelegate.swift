@@ -54,11 +54,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let statusBarView = AnyView(StatusBarView())
         self.network = Network()
         
-        // Create the popover. Width 340 / height 480 fits the wider header
-        // (header + search + sort + scroll + history + summary row); the
-        // upstream's 300x420 sized for the old single-section layout.
+        // Create the popover. Width 340 / height 520 fits the wider header
+        // (header + search + sort + scroll + interface + history + summary
+        // row); the upstream's 300x420 sized for the old single-section.
         AppDelegate.popover = NSPopover()
-        AppDelegate.popover.contentSize = NSSize(width: 340, height: 480)
+        AppDelegate.popover.contentSize = NSSize(width: 340, height: 520)
         AppDelegate.popover.behavior = .transient
 //        popover.contentViewController = NSHostingController(rootView: contentView.withGlobalEnvironmentObjects())
         

@@ -24,6 +24,19 @@ class Network {
         return r
     }()
 
+    // Milestone 9: a second nettop in socket mode, publishing per-category
+    // interface totals. Independent of the process-level `runner` so the
+    // process list stays accurate and the interface view has its own data.
+    private lazy var interfaceMonitor: InterfaceMonitor = {
+        let classifier = InterfaceClassifier()
+        let m = InterfaceMonitor(interval: interval, classifier: classifier)
+        m.onAggregate = { [weak self] snapshot in
+            SharedStore.interfaceModel.update(snapshot)
+        }
+        Log.interface.info("interface monitor launched; wifi devices=\(classifier.wifiDeviceNames.sorted())")
+        return m
+    }()
+
     public func startListenNetwork() {
         // os.log's `info(_:)` takes an `OSLogMessage`, not a `String`, and
         // interpolation values default to .private — visible to the running
@@ -33,10 +46,12 @@ class Network {
         let cap = self.historyStore.capacity
         Log.network.info("NettopRunner starting; history capacity=\(cap)")
         runner.start()
+        interfaceMonitor.start()
     }
 
     public func stopListenNetwork() {
         runner.stop()
+        interfaceMonitor.stop()
     }
 
     private func handleFrame(_ lines: [String]) {

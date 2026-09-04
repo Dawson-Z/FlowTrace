@@ -111,6 +111,13 @@ struct ContentView: View {
 
             Divider()
 
+            // Interface overview (milestone 9). Lives above the history
+            // sparkline so the popover reads top-to-bottom as: header /
+            // filter / sort / list / interface / history.
+            InterfaceSummaryView()
+
+            Divider()
+
             // Sparkline (milestone 1 experiment). Lives at the bottom; the
             // popover grows vertically to make room (see AppDelegate).
             HistoryView(store: historyStore)
