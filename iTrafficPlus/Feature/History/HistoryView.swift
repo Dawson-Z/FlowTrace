@@ -18,6 +18,7 @@ struct HistoryView: View {
         let peak = max(1, samples.map { max($0.inBytesPerSec, $0.outBytesPerSec) }.max() ?? 1)
         let latestIn  = samples.last?.inBytesPerSec  ?? 0
         let latestOut = samples.last?.outBytesPerSec ?? 0
+        let summary = store.summary
 
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
@@ -35,6 +36,33 @@ struct HistoryView: View {
             }
             sparkline(samples: samples, peak: peak)
                 .frame(height: 28)
+
+            // Milestone 8: today's peaks + 24 h averages, both from the
+            // on-disk history. `summary` is 0-filled before enough data has
+            // accumulated after a fresh install; a 0 formats as "—" via
+            // formatBytesCompact's 0.05 KB/s threshold, so no special-case
+            // blanking is needed here.
+            HStack(spacing: 6) {
+                Text("today peak")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+                Text("↓ \(formatBytesCompact(bytes: summary.todayPeakIn))")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Text("↑ \(formatBytesCompact(bytes: summary.todayPeakOut))")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("24 h avg")
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+                Text("↓ \(formatBytesCompact(bytes: summary.avgLast24hIn))")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(.secondary)
+                Text("↑ \(formatBytesCompact(bytes: summary.avgLast24hOut))")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)

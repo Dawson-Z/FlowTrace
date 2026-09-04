@@ -183,4 +183,48 @@ final class HistoryPersistence {
         }
         return results
     }
+
+    // MARK: - Summary (async, on db queue)
+
+    /// Aggregate the in-memory (or on-disk) history into a compact summary:
+    /// today's peak in/out and the average in/out over the last 24 h.
+    ///
+    /// Runs on the db queue and delivers on the main queue, so neither the
+    /// caller nor the UI thread ever touches sqlite3_*. Called from
+    /// `HistoryStore.updateSummary()` on each frame; the SQL is two indexed
+    /// scans over ≤ 302 400 rows, cheap enough to run every 2 s.
+    func summary(dayStart: Date, completion: @escaping (HistorySummary) -> Void) {
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            let result = self.summarySync(dayStart: dayStart)
+            DispatchQueue.main.async {
+                completion(result)
+            }
+        }
+    }
+
+    private func summarySync(dayStart: Date) -> HistorySummary {
+        let dayStartMs = Int64(dayStart.timeIntervalSince1970 * 1000)
+        let dayAgoMs = Int64(Date().timeIntervalSince1970 * 1000) - 24 * 3600 * 1000
+
+        func intValue(sql: String, tsMs: Int64) -> Int {
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return 0 }
+            sqlite3_bind_int64(stmt, 1, tsMs)
+            return sqlite3_step(stmt) == SQLITE_ROW ? Int(sqlite3_column_int64(stmt, 0)) : 0
+        }
+
+        // Today's peaks (since local midnight).
+        let peakIn  = intValue(sql: "SELECT MAX(in_bps) FROM history WHERE ts >= ?;", tsMs: dayStartMs)
+        let peakOut = intValue(sql: "SELECT MAX(out_bps) FROM history WHERE ts >= ?;", tsMs: dayStartMs)
+        // 24 h averages (floor so a value below 1 B/s still shows the digits).
+        let avgIn   = intValue(sql: "SELECT AVG(in_bps) FROM history WHERE ts >= ?;", tsMs: dayAgoMs)
+        let avgOut  = intValue(sql: "SELECT AVG(out_bps) FROM history WHERE ts >= ?;", tsMs: dayAgoMs)
+
+        return HistorySummary(
+            todayPeakIn: peakIn, todayPeakOut: peakOut,
+            avgLast24hIn: avgIn, avgLast24hOut: avgOut
+        )
+    }
 }

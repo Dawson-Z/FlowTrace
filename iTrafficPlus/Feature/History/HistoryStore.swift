@@ -16,8 +16,24 @@ struct HistoryFrame: Equatable {
     let outBytesPerSec: Int
 }
 
+/// Compact aggregate over the persisted history, driven by `HistoryPersistence.summary`.
+/// Values are 0 when there is not enough data yet (e.g. just after a fresh install,
+/// or when the 24 h window is still filling up).
+struct HistorySummary: Equatable {
+    let todayPeakIn: Int
+    let todayPeakOut: Int
+    let avgLast24hIn: Int
+    let avgLast24hOut: Int
+
+    static let empty = HistorySummary(todayPeakIn: 0, todayPeakOut: 0, avgLast24hIn: 0, avgLast24hOut: 0)
+}
+
 final class HistoryStore: ObservableObject {
     @Published private(set) var samples: [HistoryFrame] = []
+    /// Latest aggregate over on-disk history. Updated once per frame via
+    /// `updateSummary()`; kept in memory so the view repaints on the exact
+    /// cadence the sparkline repaints, with no extra polling.
+    @Published private(set) var summary: HistorySummary = .empty
     let capacity: Int
 
     private var buffer: RingBuffer<HistoryFrame>
@@ -47,6 +63,7 @@ final class HistoryStore: ObservableObject {
             samples = buffer.snapshot()
         }
         Log.persistence.info("bootstrap: seeded \(seeded) frames from on-disk history")
+        refreshSummary()
     }
 
     func append(inBytesPerSec: Int, outBytesPerSec: Int) {
@@ -62,6 +79,22 @@ final class HistoryStore: ObservableObject {
                 inBytesPerSec: inBytesPerSec,
                 outBytesPerSec: outBytesPerSec
             ))
+            refreshSummary()
+        }
+    }
+
+    /// Recompute the `summary` aggregate. Runs the two indexed SQL scans
+    /// on the db queue, delivers on the main queue, and only publishes if
+    /// the value actually changed — so a flat window (all frames equal)
+    /// does not spam the view with a redundant publish.
+    private func refreshSummary() {
+        guard let persistence = persistence else { return }
+        let dayStart = Calendar.current.startOfDay(for: Date())
+        persistence.summary(dayStart: dayStart) { [weak self] new in
+            guard let self = self else { return }
+            if new != self.summary {
+                self.summary = new
+            }
         }
     }
 }
