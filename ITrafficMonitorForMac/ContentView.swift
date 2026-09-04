@@ -14,6 +14,11 @@ struct ContentView: View {
     // exactly what `@StateObject(wrappedValue:)` is for.
     @StateObject var viewModel = SharedStore.listViewModel
     @StateObject var historyStore = SharedStore.historyStore
+    // SettingsStore is read here so the search filter can pass
+    // `caseInsensitive` through. `SearchFilter` is a pure function; the
+    // setting is the only thing that changes its behaviour, and we want the
+    // change to apply on the next keystroke, not on the next app launch.
+    @ObservedObject var settings = SettingsStore.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -87,7 +92,11 @@ struct ContentView: View {
             // SwiftUI List adds platform-specific leading insets that hid icons.)
             ScrollView {
                 VStack(spacing: 0) {
-                    let visible = SearchFilter.filter(items: viewModel.items, searchText: viewModel.searchText)
+                    let visible = SearchFilter.filter(
+                        items: viewModel.items,
+                        searchText: viewModel.searchText,
+                        caseInsensitive: settings.caseInsensitiveSearch
+                    )
                     let maxTotal = visible
                         .map { $0.inBytesPerSec + $0.outBytesPerSec }
                         .max() ?? 0

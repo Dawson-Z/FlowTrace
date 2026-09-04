@@ -36,9 +36,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // frames after launch are written to the in-memory store only and
         // never make it to disk. Network.startListenNetwork runs later
         // in this same method, so attach is safe here.
-        if let persistence = HistoryPersistence(dbURL: HistoryPersistence.defaultDbURL()) {
+        //
+        // Retention is read from the Settings store, not hard-coded — see
+        // milestone 6. The store reads its own initial value from
+        // UserDefaults before this line runs because SettingsStore.shared
+        // is a static-let that is touched the first time the value is
+        // needed (which is right here).
+        let retention = TimeInterval(SettingsStore.shared.historyRetentionDays) * 24 * 3600
+        if let persistence = HistoryPersistence(dbURL: HistoryPersistence.defaultDbURL(), retentionSeconds: retention) {
             SharedStore.attachHistoryPersistence(persistence)
-            Log.appDelegate.info("history persistence attached at \(persistence.dbURL.path)")
+            Log.appDelegate.info("history persistence attached at \(persistence.dbURL.path); retention=\(Int(retention/86400))d")
         } else {
             Log.appDelegate.error("history persistence failed to open; falling back to in-memory only")
         }

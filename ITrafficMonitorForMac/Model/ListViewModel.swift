@@ -42,7 +42,20 @@ class ListViewModel: ObservableObject {
     /// Sort order. The Picker in `ContentView` writes here; `sort(items:)`
     /// reads it. Switches do not trigger a re-merge of the underlying
     /// `items` array — only the rendered order changes.
-    @Published var sortMode: ListSortMode = .total
+    ///
+    /// Initial value comes from `SettingsStore.shared.defaultSortModeRaw`,
+    /// which reads its own initial value from UserDefaults at SettingsStore
+    /// init. We re-read it here so changes the user makes in the Settings
+    /// window *after* this VM is constructed are *not* applied mid-session
+    /// — the sort mode is a session-scoped preference, like "default sort"
+    /// in a music player: it takes effect on next launch.
+    @Published var sortMode: ListSortMode = {
+        if let raw = SettingsStore.shared.defaultSortModeRaw as String?,
+           let mode = ListSortMode(rawValue: raw) {
+            return mode
+        }
+        return .total
+    }()
     var globalModel = SharedStore.globalModel
     var gcCounter = 0
 
