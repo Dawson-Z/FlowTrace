@@ -1,0 +1,2 @@
+{"file": "AGENTS.md", "reason": "项目铁律:速率归一化仅一处、无第三方依赖、11.0部署、.help需#available"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "数据层/持久化与UI/窗口跨层改动时的思考框架"}

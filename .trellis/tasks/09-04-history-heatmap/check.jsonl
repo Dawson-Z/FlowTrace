@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "质量/回归检查准则"}
+{"file": "AGENTS.md", "reason": "检查时须对照速率归一化/零依赖/部署目标等铁律"}
