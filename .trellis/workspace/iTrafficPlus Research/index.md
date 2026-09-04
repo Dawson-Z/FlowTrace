@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 1
+- **Total Sessions**: 2
 - **Last Active**: 2026-09-04
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~42 | Active |
+| `journal-1.md` | ~80 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 2 | 2026-09-04 | m12 多语本地化(zh-Hans/en/zh-Hant) + 排序/间隔 UX 修复 | `079722c`, `8cad6a3` | `main` |
 | 1 | 2026-09-04 | iTrafficPlus m11 验证 + Trellis 脚手架初始化 | `cb3a59b` | `main` |
 <!-- @@@/auto:session-history -->
 
