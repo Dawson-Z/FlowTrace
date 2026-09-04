@@ -33,7 +33,7 @@ class Network {
         m.onAggregate = { [weak self] snapshot in
             SharedStore.interfaceModel.update(snapshot)
         }
-        Log.interface.info("interface monitor launched; wifi devices=\(classifier.wifiDeviceNames.sorted())")
+        Log.interface.info("interface monitor launched; ports=\(classifier.portByDevice)")
         return m
     }()
 

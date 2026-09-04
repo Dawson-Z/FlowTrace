@@ -5,7 +5,7 @@
 //  Maps a network-interface name (as reported by nettop's socket-mode
 //  `interface` column, e.g. `en1`, `bridge100`, `awdl0`, `en13`) to a
 //  coarse semantic label the user actually cares about: Wi-Fi, Wired,
-//  LocalDirect (AWDL / peer-to-peer), or Other.
+//  USB (iPhone tethering), LocalDirect (AWDL / peer-to-peer), or Other.
 //
 //  Why not hard-code interface names
 //  --------------------------------
@@ -18,20 +18,22 @@
 //
 //  Strategy
 //  --------
-//  1. Every interface name is classified as "wired-like" if it is a
-//     numeric `en*` (ethernet-family device) — even if dynamically
-//     created (en13). This keeps the common Mac case correct: on this
-//     machine the Wi-Fi is `en1`, so we must **not** blanket-treat all
-//     `en*` as wired.
-//  2. The Wi-Fi device name(s) are discovered at runtime from
-//     `networksetup -listallhardwareports` (Hardware Port == "Wi-Fi").
-//     Those names override the `en*` heuristic and are classified Wi-Fi.
-//  3. Known Apple Wireless Direct Link names are LocalDirect.
-//  4. Everything else is Other.
+//  We parse the *entire* hardware-ports table once, keyed by device, and
+//  classify by the "Hardware Port" string first:
+//    - "Wi-Fi"            -> wifi
+//    - contains "USB"     -> usb   (iPhone USB tethering is by far the
+//                                   most common; label it explicitly so
+//                                   "Wired" is not misread for cell data)
+//    - "Ethernet" / "Thunderbolt" -> wired
+//  Then fall back to a name heuristic for devices that never show up in
+//  the table (virtual/dynamic):
+//    - `awdl0` / `llw0`   -> localDirect
+//    - numeric `en*`      -> wired  (dynamic USB/Thunderbolt NICs like
+//                                    en13, en2-en4 on this machine)
+//    - `bridge*` or unknown -> other
 //
-//  This is intentionally a *pure* classifier over a name + a set of
-//  known Wi-Fi device names, so the interesting logic is unit-testable
-//  without touching process/network state.
+//  This stays a *pure* classifier over (name, portByDevice) so the
+//  interesting logic is unit-testable without process state.
 //
 
 import Foundation
@@ -40,6 +42,7 @@ import Foundation
 enum InterfaceCategory: String, CaseIterable, Identifiable {
     case wifi        = "Wi-Fi"
     case wired       = "Wired"
+    case usb         = "USB"
     case localDirect = "Local Direct"
     case other       = "Other"
 
@@ -49,10 +52,10 @@ enum InterfaceCategory: String, CaseIterable, Identifiable {
 struct InterfaceClassifier {
 
     /// Run once at startup; parses `networksetup -listallhardwareports`
-    /// and returns the device names whose Hardware Port is "Wi-Fi"
-    /// (typically just `en1`). Deliberately best-effort: a failure here
-    /// just means no `en*` gets special-cased as Wi-Fi.
-    static func discoverWiFiDeviceNames() -> Set<String> {
+    /// and returns a map of device name -> Hardware Port string. Best
+    /// effort: a failure returns an empty dict, which just means the
+    /// classifier relies on the name heuristics alone.
+    static func discoverPortByDevice() -> [String: String] {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/networksetup")
         process.arguments = ["-listallhardwareports"]
@@ -63,13 +66,13 @@ struct InterfaceClassifier {
         do {
             try process.run()
         } catch {
-            return []
+            return [:]
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
 
         let text = String(data: data, encoding: .utf8) ?? ""
-        var wifiNames: Set<String> = []
+        var portByDevice: [String: String] = [:]
         var currentPort = ""
         for line in text.split(separator: "\n") {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -79,18 +82,18 @@ struct InterfaceClassifier {
             } else if trimmed.hasPrefix("Device:") {
                 let device = trimmed.replacingOccurrences(of: "Device:", with: "")
                     .trimmingCharacters(in: .whitespaces)
-                if currentPort == "Wi-Fi" {
-                    wifiNames.insert(device)
+                if !device.isEmpty {
+                    portByDevice[device] = currentPort
                 }
             }
         }
-        return wifiNames
+        return portByDevice
     }
 
-    let wifiDeviceNames: Set<String>
+    let portByDevice: [String: String]
 
-    init(wifiDeviceNames: Set<String> = InterfaceClassifier.discoverWiFiDeviceNames()) {
-        self.wifiDeviceNames = wifiDeviceNames
+    init(portByDevice: [String: String] = InterfaceClassifier.discoverPortByDevice()) {
+        self.portByDevice = portByDevice
     }
 
     func classify(_ interfaceName: String) -> InterfaceCategory {
@@ -102,11 +105,19 @@ struct InterfaceClassifier {
         let lower = name.lowercased()
         if lower == "awdl0" || lower == "llw0" { return .localDirect }
 
-        // Explicit Wi-Fi device names override the generic `en*` rule.
-        if wifiDeviceNames.contains(name) { return .wifi }
+        // Known hardware ports win over the `en*` heuristic, because on a
+        // Mac the Wi-Fi NIC is itself an `en*` device (here en1).
+        if let port = portByDevice[name] {
+            let p = port.lowercased()
+            if p == "wifi" { return .wifi }
+            if p.contains("usb") { return .usb }
+            // Ethernet / Thunderbolt bridges count as wired.
+            if p.contains("ethernet") || p.contains("thunderbolt") { return .wired }
+        }
 
         // Everything that looks like an ethernet-family device (en*) —
-        // including dynamic ones like en13 — is wired-like.
+        // including dynamic ones like en13 — is wired-like. (Reached only
+        // when the device was not in the hardware-ports table.)
         if lower.hasPrefix("en") && lower.dropFirst().allSatisfy({ $0.isNumber }) {
             return .wired
         }
