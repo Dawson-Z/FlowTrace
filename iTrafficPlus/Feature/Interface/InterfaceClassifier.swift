@@ -5,7 +5,7 @@
 //  Maps a network-interface name (as reported by nettop's socket-mode
 //  `interface` column, e.g. `en1`, `bridge100`, `awdl0`, `en13`) to a
 //  coarse semantic label the user actually cares about: Wi-Fi, Wired,
-//  USB (iPhone tethering), LocalDirect (AWDL / peer-to-peer), or Other.
+//  LocalDirect (AWDL / peer-to-peer), or Other.
 //
 //  Why not hard-code interface names
 //  --------------------------------
@@ -20,11 +20,10 @@
 //  --------
 //  We parse the *entire* hardware-ports table once, keyed by device, and
 //  classify by the "Hardware Port" string first:
-//    - "Wi-Fi"            -> wifi
-//    - contains "USB"     -> usb   (iPhone USB tethering is by far the
-//                                   most common; label it explicitly so
-//                                   "Wired" is not misread for cell data)
-//    - "Ethernet" / "Thunderbolt" -> wired
+//    - "Wi-Fi"                -> wifi
+//    - "USB" / "Ethernet" /
+//      "Thunderbolt"          -> wired  (USB tethering like iPhone's en11
+//                                         is folded into Wired by design)
 //  Then fall back to a name heuristic for devices that never show up in
 //  the table (virtual/dynamic):
 //    - `awdl0` / `llw0`   -> localDirect
@@ -42,7 +41,6 @@ import Foundation
 enum InterfaceCategory: String, CaseIterable, Identifiable {
     case wifi        = "Wi-Fi"
     case wired       = "Wired"
-    case usb         = "USB"
     case localDirect = "Local Direct"
     case other       = "Other"
 
@@ -110,9 +108,12 @@ struct InterfaceClassifier {
         if let port = portByDevice[name] {
             let p = port.lowercased()
             if p == "wifi" { return .wifi }
-            if p.contains("usb") { return .usb }
-            // Ethernet / Thunderbolt bridges count as wired.
-            if p.contains("ethernet") || p.contains("thunderbolt") { return .wired }
+            // USB / Ethernet / Thunderbolt all count as wired. (There is no
+            // separate 'usb' bucket — the user chose to fold USB tethering
+            // into Wired.)
+            if p.contains("usb") || p.contains("ethernet") || p.contains("thunderbolt") {
+                return .wired
+            }
         }
 
         // Everything that looks like an ethernet-family device (en*) —

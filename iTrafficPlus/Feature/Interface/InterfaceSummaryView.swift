@@ -170,7 +170,6 @@ private extension InterfaceCategory {
         switch self {
         case .wifi:        return .blue
         case .wired:       return .green
-        case .usb:         return .purple
         case .localDirect: return .orange
         case .other:       return .gray
         }
