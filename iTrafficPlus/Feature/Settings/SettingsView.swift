@@ -86,6 +86,19 @@ struct SettingsView: View {
                     .labelsHidden()
             }
 
+            Divider()
+
+            // MARK: - Monitoring
+            Text("Monitoring")
+                .font(.system(size: 13, weight: .semibold))
+
+            Picker("Refresh interval", selection: $settings.refreshInterval) {
+                Text("1 second").tag(1)
+                Text("2 seconds").tag(2)
+                Text("5 seconds").tag(5)
+            }
+            .pickerStyle(.segmented)
+
             Spacer()
 
             HStack {

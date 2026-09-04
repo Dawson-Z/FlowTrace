@@ -64,13 +64,20 @@ class ListViewModel: ObservableObject {
             items.removeAll()
         }
 
+        // Milestone 11: collapse the frame's processes that share a name
+        // into one row. nettop reports each PID separately (e.g. Electron
+        // helper processes, "Trae CN Helper.86108/.86111/.86112"), so a
+        // single app can appear as several rows. Summing the rates under the
+        // shared display name gives a cleaner, more accurate "this app" view.
+        let mergedItems = ListViewModel.mergeSameNameProcesses(newItems)
+
         var pid2IndexForItems = [Int: Int]()
         var pidInNewItems = [Int: Int]()
         for (i, item) in items.enumerated() {
             pid2IndexForItems[item.pid] = i
         }
 
-        for newItem in newItems {
+        for newItem in mergedItems {
             let i = pid2IndexForItems[newItem.pid] ?? -1
             if i != -1 {
                 items[i].icon = newItem.icon
@@ -86,6 +93,30 @@ class ListViewModel: ObservableObject {
 
         items = items.filter { pidInNewItems[$0.pid] != nil }
         items = sort(items: items)
+    }
+
+    /// Collapse processes sharing a case-insensitive display name into a
+    /// single entity: rates sum, pid keeps the smallest (so the row stays
+    /// stable frame-to-frame), name keeps the first-seen spelling. Pure
+    /// function, unit-testable.
+    static func mergeSameNameProcesses(_ entities: [ProcessEntity]) -> [ProcessEntity] {
+        var byName: [String: ProcessEntity] = [:]
+        var order: [String] = []
+        for e in entities {
+            let key = e.name.lowercased()
+            if var existing = byName[key] {
+                existing.inBytesPerSec += e.inBytesPerSec
+                existing.outBytesPerSec += e.outBytesPerSec
+                existing.pid = min(existing.pid, e.pid)
+                byName[key] = existing
+            } else {
+                // Fresh entry inherits the first icon seen; subsequent frames
+                // refresh it via the PID-merge path below.
+                order.append(key)
+                byName[key] = e
+            }
+        }
+        return order.compactMap { byName[$0] }
     }
 
     /// Stable on total-rate first; within ties, name is the secondary key.

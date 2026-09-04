@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 class Network {
     @ObservedObject var viewModel = SharedStore.listViewModel
@@ -14,20 +15,26 @@ class Network {
     @ObservedObject var globalModel = SharedStore.globalModel
     @ObservedObject var historyStore = SharedStore.historyStore
 
-    private let interval = 2
+    /// Current sample interval (seconds). Re-read from Settings so a change
+    /// in the Settings window can take effect via `applyRefreshInterval()`.
+    private(set) var interval: Int = SettingsStore.shared.refreshInterval
+    private var cancellables: Set<AnyCancellable> = []
 
-    private lazy var runner: NettopRunner = {
+    /// Built on demand by the factory methods so an interval change can
+    /// rebuild every subprocess with the new `-s` value.
+    private var runner: NettopRunner?
+    private var interfaceMonitor: InterfaceMonitor?
+    private var interfaceTopMonitor: InterfaceTopMonitor?
+
+    private func makeRunner() -> NettopRunner {
         let r = NettopRunner(interval: interval)
         r.onFrame = { [weak self] lines in
             self?.handleFrame(lines)
         }
         return r
-    }()
+    }
 
-    // Milestone 9: a second nettop in socket mode, publishing per-category
-    // interface totals. Independent of the process-level `runner` so the
-    // process list stays accurate and the interface view has its own data.
-    private lazy var interfaceMonitor: InterfaceMonitor = {
+    private func makeInterfaceMonitor() -> InterfaceMonitor {
         let classifier = InterfaceClassifier()
         let m = InterfaceMonitor(interval: interval, classifier: classifier)
         m.onAggregate = { [weak self] snapshot in
@@ -35,19 +42,16 @@ class Network {
         }
         Log.interface.info("interface monitor launched; ports=\(classifier.portByDevice)")
         return m
-    }()
+    }
 
-    // Milestone 10: one nettop per interface TYPE (`-P -t <type>`) so we
-    // can show the top processes per Wi-Fi / Wired / AWDL. USB (en11) is
-    // captured under 'wired' because nettop's -t has no 'usb' type.
-    private lazy var interfaceTopMonitor: InterfaceTopMonitor = {
+    private func makeInterfaceTopMonitor() -> InterfaceTopMonitor {
         let m = InterfaceTopMonitor(interval: interval)
         m.onSnapshot = { [weak self] snapshots in
             SharedStore.interfaceModel.updateTop(snapshots)
         }
         Log.interface.info("interface top monitor launched (types=\(InterfaceTopType.allCases.map(\.nettopArgument)))")
         return m
-    }()
+    }
 
     public func startListenNetwork() {
         // os.log's `info(_:)` takes an `OSLogMessage`, not a `String`, and
@@ -56,16 +60,54 @@ class Network {
         // Console.app and `log stream`. Literal string parts are always
         // public; only the `\(...)` slot needs the explicit privacy.
         let cap = self.historyStore.capacity
-        Log.network.info("NettopRunner starting; history capacity=\(cap)")
-        runner.start()
-        interfaceMonitor.start()
-        interfaceTopMonitor.start()
+        Log.network.info("NettopRunner starting; history capacity=\(cap); interval=\(interval)s")
+
+        runner = makeRunner()
+        interfaceMonitor = makeInterfaceMonitor()
+        interfaceTopMonitor = makeInterfaceTopMonitor()
+        runner?.start()
+        interfaceMonitor?.start()
+        interfaceTopMonitor?.start()
+
+        // Milestone 11: react to refresh-interval changes in Settings by
+        // rebuilding every nettop subprocess with the new `-s` value.
+        SettingsStore.shared.$refreshInterval
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                self?.applyRefreshInterval()
+            }
+            .store(in: &cancellables)
     }
 
     public func stopListenNetwork() {
-        runner.stop()
-        interfaceMonitor.stop()
-        interfaceTopMonitor.stop()
+        runner?.stop()
+        interfaceMonitor?.stop()
+        interfaceTopMonitor?.stop()
+        runner = nil
+        interfaceMonitor = nil
+        interfaceTopMonitor = nil
+        cancellables.removeAll()
+    }
+
+    /// Restart every nettop subprocess so the sample interval takes effect.
+    /// A shorter interval makes the UI refresh more often but costs more
+    /// nettop CPU; the rate normalisation in `parser` reads `interval`, so
+    /// it must be current before the new subprocesses produce frames.
+    private func applyRefreshInterval() {
+        let newInterval = SettingsStore.shared.refreshInterval
+        guard newInterval != interval else { return }
+        interval = newInterval
+        Log.network.info("refresh interval changed to \(newInterval)s; restarting collectors")
+        runner?.stop()
+        interfaceMonitor?.stop()
+        interfaceTopMonitor?.stop()
+        runner = makeRunner()
+        interfaceMonitor = makeInterfaceMonitor()
+        interfaceTopMonitor = makeInterfaceTopMonitor()
+        runner?.start()
+        interfaceMonitor?.start()
+        interfaceTopMonitor?.start()
     }
 
     private func handleFrame(_ lines: [String]) {

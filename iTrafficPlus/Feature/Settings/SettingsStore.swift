@@ -52,6 +52,13 @@ final class SettingsStore: ObservableObject {
     /// Days to keep rows in history.sqlite3. 1-day minimum, 30-day maximum.
     @Published var historyRetentionDays: Int
 
+    // MARK: - Monitoring
+
+    /// nettop sample interval in seconds (milestone 11). Applies to all
+    /// nettop subprocesses; a shorter interval updates the UI more often at
+    /// the cost of more nettop CPU. 1 / 2 / 5 s.
+    @Published var refreshInterval: Int
+
     private enum K {
         static let launchAtLogin              = "launchAtLogin"
         static let defaultSortModeRaw         = "defaultSortModeRaw"
@@ -59,6 +66,7 @@ final class SettingsStore: ObservableObject {
         static let showDownloadInStatusBar    = "showDownloadInStatusBar"
         static let showUploadInStatusBar      = "showUploadInStatusBar"
         static let historyRetentionDays       = "historyRetentionDays"
+        static let refreshInterval            = "refreshInterval"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -77,6 +85,7 @@ final class SettingsStore: ObservableObject {
         self._showDownloadInStatusBar = Published(initialValue: defaults.object(forKey: K.showDownloadInStatusBar) as? Bool ?? true)
         self._showUploadInStatusBar   = Published(initialValue: defaults.object(forKey: K.showUploadInStatusBar) as? Bool ?? true)
         self._historyRetentionDays    = Published(initialValue: defaults.object(forKey: K.historyRetentionDays) as? Int ?? 7)
+        self._refreshInterval         = Published(initialValue: defaults.object(forKey: K.refreshInterval) as? Int ?? 2)
 
         // Each sink starts with the just-loaded value; `.dropFirst()` skips
         // that initial replay, so only real user edits round-trip to disk.
@@ -114,6 +123,9 @@ final class SettingsStore: ObservableObject {
             .store(in: &cancellables)
         $historyRetentionDays.dropFirst()
             .sink { [weak self] v in self?.defaults.set(v, forKey: K.historyRetentionDays) }
+            .store(in: &cancellables)
+        $refreshInterval.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.refreshInterval) }
             .store(in: &cancellables)
     }
 }
