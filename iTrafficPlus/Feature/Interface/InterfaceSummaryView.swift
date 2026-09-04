@@ -75,9 +75,93 @@ struct InterfaceSummaryView: View {
                     }
                 }
             }
+
+            // Milestone 10: top processes per interface type (Wi-Fi / Wired /
+            // USB / ...). Read from `model.topSnapshots`. Three compact
+            // columns — one per type — each listing the top N processes by
+            // total bytes. Collapsible to keep the popover from growing too
+            // tall when idle.
+            InterfaceTopListView(model: model)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
+    }
+}
+
+/// The per-interface-type "top processes" section. Three columns (Wi-Fi /
+/// Wired / AWDL), each showing that type's top processes with their in/out
+/// rates. Toggling the header hides the rows to save vertical space.
+struct InterfaceTopListView: View {
+    @ObservedObject var model: InterfaceModel
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Header — click to expand/collapse.
+            Button(action: { expanded.toggle() }) {
+                HStack(spacing: 6) {
+                    Text("top processes")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Text(expanded ? "▾" : "▸")
+                        .font(.system(size: 8))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(InterfaceTopType.allCases) { type in
+                        InterfaceTopColumn(type: type, snapshot: model.topSnapshots[type])
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// One column of top processes for a single interface type.
+struct InterfaceTopColumn: View {
+    let type: InterfaceTopType
+    let snapshot: InterfaceTopSnapshot?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 3) {
+                Circle()
+                    .fill(Color(red: type.color.r, green: type.color.g, blue: type.color.b))
+                    .frame(width: 6, height: 6)
+                Text(type.rawValue)
+                    .font(.system(size: 8, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            let top = snapshot?.topProcesses ?? []
+            if top.isEmpty {
+                Text("—")
+                    .font(.system(size: 8))
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(Array(top.prefix(4))) { proc in
+                    HStack(spacing: 3) {
+                        Text(proc.name)
+                            .font(.system(size: 8))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text("↓\(formatBytesCompact(bytes: proc.inBytesPerSec))")
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Text("↑\(formatBytesCompact(bytes: proc.outBytesPerSec))")
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

@@ -37,6 +37,18 @@ class Network {
         return m
     }()
 
+    // Milestone 10: one nettop per interface TYPE (`-P -t <type>`) so we
+    // can show the top processes per Wi-Fi / Wired / AWDL. USB (en11) is
+    // captured under 'wired' because nettop's -t has no 'usb' type.
+    private lazy var interfaceTopMonitor: InterfaceTopMonitor = {
+        let m = InterfaceTopMonitor(interval: interval)
+        m.onSnapshot = { [weak self] snapshots in
+            SharedStore.interfaceModel.updateTop(snapshots)
+        }
+        Log.interface.info("interface top monitor launched (types=\(InterfaceTopType.allCases.map(\.nettopArgument)))")
+        return m
+    }()
+
     public func startListenNetwork() {
         // os.log's `info(_:)` takes an `OSLogMessage`, not a `String`, and
         // interpolation values default to .private — visible to the running
@@ -47,11 +59,13 @@ class Network {
         Log.network.info("NettopRunner starting; history capacity=\(cap)")
         runner.start()
         interfaceMonitor.start()
+        interfaceTopMonitor.start()
     }
 
     public func stopListenNetwork() {
         runner.stop()
         interfaceMonitor.stop()
+        interfaceTopMonitor.stop()
     }
 
     private func handleFrame(_ lines: [String]) {
