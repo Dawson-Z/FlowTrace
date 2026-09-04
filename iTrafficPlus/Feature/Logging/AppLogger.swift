@@ -41,6 +41,8 @@ enum AppLogger {
     static let nettopRunner = Logger(subsystem: subsystem, category: "nettopRunner")
     /// Feature/History/HistoryPersistence.swift — SQLite open, schema, append, prune.
     static let persistence = Logger(subsystem: subsystem, category: "persistence")
+    /// Feature/Settings/* — Preferences read/write, launch-at-login registration.
+    static let settings = Logger(subsystem: subsystem, category: "settings")
 }
 
 /// File sink used when os.log is unavailable to the user. Writes one line per

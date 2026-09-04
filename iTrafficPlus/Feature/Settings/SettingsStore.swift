@@ -29,6 +29,9 @@ final class SettingsStore: ObservableObject {
 
     private let defaults: UserDefaults
     private var cancellables: Set<AnyCancellable> = []
+    /// Guards the launch-at-login rollback path so setting `launchAtLogin
+    /// = false` inside the sink does not re-enter the sink and loop.
+    private var isRollingBackLaunchAtLogin = false
 
     // MARK: - General
 
@@ -62,7 +65,13 @@ final class SettingsStore: ObservableObject {
         self.defaults = defaults
         // Read directly into backing storage; this bypasses the @Published
         // publishers' willChange and does not fire the `sink`s below.
-        self._launchAtLogin           = Published(initialValue: defaults.bool(forKey: K.launchAtLogin))
+        //
+        // `launchAtLogin` is seeded from the *live* OS status (not from the
+        // defaults value) because the macOS login-item state is the source of
+        // truth: UserDefaults can drift when the user manages it in System
+        // Settings (macOS 13+). Unsupported OSes (11–12) seed `false`.
+        let launchStatus = LaunchAtLoginManager.currentStatus()
+        self._launchAtLogin           = Published(initialValue: launchStatus == .enabled)
         self._defaultSortModeRaw      = Published(initialValue: defaults.string(forKey: K.defaultSortModeRaw) ?? "total")
         self._caseInsensitiveSearch   = Published(initialValue: defaults.object(forKey: K.caseInsensitiveSearch) as? Bool ?? true)
         self._showDownloadInStatusBar = Published(initialValue: defaults.object(forKey: K.showDownloadInStatusBar) as? Bool ?? true)
@@ -71,8 +80,25 @@ final class SettingsStore: ObservableObject {
 
         // Each sink starts with the just-loaded value; `.dropFirst()` skips
         // that initial replay, so only real user edits round-trip to disk.
-        $launchAtLogin.dropFirst()
-            .sink { [weak self] v in self?.defaults.set(v, forKey: K.launchAtLogin) }
+        //
+        // `launchAtLogin` does NOT write to UserDefaults — the OS login-item
+        // state is authoritative. The sink calls the manager instead.
+        $launchAtLogin
+            .dropFirst()
+            .sink { [weak self] v in
+                guard let self = self, !self.isRollingBackLaunchAtLogin else { return }
+                let status = LaunchAtLoginManager.setEnabled(v)
+                if case .failed(let msg) = status {
+                    // Registration failed. Roll the toggle back so the UI
+                    // does not lie about the actual system state; the guard
+                    // flag prevents the rollback write from re-firing the
+                    // sink and looping.
+                    self.isRollingBackLaunchAtLogin = true
+                    self.launchAtLogin = false
+                    self.isRollingBackLaunchAtLogin = false
+                    Log.settings.error("launch-at-login toggle failed: \(msg)")
+                }
+            }
             .store(in: &cancellables)
         $defaultSortModeRaw.dropFirst()
             .sink { [weak self] v in self?.defaults.set(v, forKey: K.defaultSortModeRaw) }
