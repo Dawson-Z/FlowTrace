@@ -78,3 +78,38 @@
 ### Next Steps
 
 - 实现 09-04-history-heatmap(接口历史持久化+热力图+独立窗口)
+
+
+## Session 3: m13 历史窗口热力图 + 接口历史持久化 + Bytetally 覆盖补全
+<!-- trellis-session: v=2 fp=f7140172c63767c1 -->
+
+**Date**: 2026-09-05
+**Task**: m13 历史窗口热力图 + 接口历史持久化 + Bytetally 覆盖补全
+**Branch**: `main`
+
+### Summary
+
+实现独立历史窗口:interface_history 持久化+本地小时桶AVG聚合+范围/类别过滤+双方向热力图; 对照 Bytetally 官方功能清单补建 5 个 A 类任务(quota/anomaly/export/knowledge-base/menubar)
+
+### Main Changes
+
+- interface_history 表+写入管道(归一化单点)+heatmap 查询; HistoryWindowView/HeatmapView/Model 三新文件; popover ⤢ 入口
+- Bytetally 对照:补建 quota-alerts/upload-anomaly-alerts/data-export/process-knowledge-base/menubar-display-mode; B 类(NE 依赖)维持不做
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7746205` | iTrafficPlus 0.3.0 milestone 13 (history window: hour×day heatmap, interface history persistence, range/category filters, two directions) |
+
+### Testing
+
+- [OK] verify_history.swift 15/15 PASS; xcodebuild BUILD SUCCEEDED; 用户 GUI 验证热力图窗口
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 启动 09-05-process-usage-history: 分钟级预聚合管道+process_usage 表+历史窗口 Apps 标签页
