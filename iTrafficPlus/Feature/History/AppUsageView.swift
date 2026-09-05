@@ -120,13 +120,17 @@ struct AppUsageView: View {
     }
 
     private func usageRow(_ row: ProcessUsageSummary) -> some View {
-        let appInfo = getAppInfo(pid: 0, name: row.name)
+        // Name-keyed lookup: NEVER getAppInfo(pid: 0, …) — that funnels all
+        // rows through one cache slot and shows the first-seen name on every
+        // row. The display name is the raw process name; only the icon is
+        // borrowed from a matching running app.
+        let appInfo = getAggregatedAppInfo(name: row.name)
         return HStack(spacing: 8) {
-            Image(nsImage: appInfo?.icon ?? NSImage())
+            Image(nsImage: appInfo.icon)
                 .resizable()
                 .interpolation(.high)
                 .frame(width: 16, height: 16)
-            Text(appInfo?.name ?? row.name)
+            Text(appInfo.name ?? row.name)
                 .font(.system(size: 11))
                 .lineLimit(1)
                 .truncationMode(.middle)

@@ -50,6 +50,51 @@ struct AppInfo {
 var APP_INFO_CACHE = [Int: AppInfo]()
 var CACHE_TTL = 3600
 
+/// Cache for *aggregated history* rows, keyed by process NAME — never by pid.
+/// `getAppInfo(pid: 0, …)` would funnel every row through the pid-0 cache
+/// slot and display the first-seen name for all rows ("multiple identical
+/// apps" bug).
+var USAGE_INFO_CACHE = [String: AppInfo]()
+
+/// Resolve a best-effort icon for an aggregated history row. The display
+/// name stays the raw process name (the stable grouping key): bundling
+/// helpers under their host app's label would re-create visually duplicate
+/// rows. Only the icon is borrowed from a matching running app, if any.
+func getAggregatedAppInfo(name: String) -> AppInfo {
+    let key = name.lowercased()
+    let timestamp = Int(NSDate().timeIntervalSince1970)
+    if let cached = USAGE_INFO_CACHE[key], (timestamp - cached.updateTime) < CACHE_TTL {
+        return cached
+    }
+
+    var resolved: NSRunningApplication?
+    let apps = NSWorkspace.shared.runningApplications
+        .filter { $0.activationPolicy == .regular }
+    // 1. Exact executable-name match.
+    for app in apps {
+        if let exec = app.executableURL?.deletingPathExtension().path.lowercased(), exec == key {
+            resolved = app
+            break
+        }
+    }
+    // 2. Helper processes: localizedName as a prefix of the process name
+    //    ("Trae CN" ↦ "trae cn helper").
+    if resolved == nil {
+        for app in apps {
+            if let label = app.localizedName?.lowercased(), !label.isEmpty,
+               key.hasPrefix(label) {
+                resolved = app
+                break
+            }
+        }
+    }
+
+    let icon = resolved?.icon ?? NSImage(named: "blank") ?? NSImage()
+    let info = AppInfo(icon: icon, name: name, updateTime: timestamp)
+    USAGE_INFO_CACHE[key] = info
+    return info
+}
+
 /// Resolve icon + display name for a PID:
 /// 1. Try `NSRunningApplication(pid)` directly (GUI apps).
 /// 2. If not found, walk the parent process tree up to 6 levels until
