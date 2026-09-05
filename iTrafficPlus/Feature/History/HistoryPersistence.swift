@@ -478,4 +478,29 @@ final class HistoryPersistence {
             DispatchQueue.main.async { completion(rows) }
         }
     }
+
+    /// Total bytes over a minute-bucket range (quota / menu-bar totals).
+    /// Reads only the byte columns — interval-independent by construction.
+    func usageBytes(fromBucket: Int, toBucket: Int,
+                    completion: @escaping (UsageBytes) -> Void) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            var usage = UsageBytes()
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            let sql = "SELECT SUM(in_bytes), SUM(out_bytes) FROM process_usage WHERE minute_bucket >= ? AND minute_bucket < ?;"
+            guard sqlite3_prepare_v2(self.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                Log.persistence.error("usageBytes query failed: \(String(cString: sqlite3_errmsg(self.db)))")
+                DispatchQueue.main.async { completion(usage) }
+                return
+            }
+            sqlite3_bind_int64(stmt, 1, Int64(fromBucket))
+            sqlite3_bind_int64(stmt, 2, Int64(toBucket))
+            if sqlite3_step(stmt) == SQLITE_ROW {
+                usage.inBytes = Int(sqlite3_column_int64(stmt, 0))
+                usage.outBytes = Int(sqlite3_column_int64(stmt, 1))
+            }
+            DispatchQueue.main.async { completion(usage) }
+        }
+    }
 }

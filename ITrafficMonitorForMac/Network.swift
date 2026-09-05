@@ -158,6 +158,8 @@ class Network {
         // Per-app usage history: accumulate this frame into the current
         // minute bucket (flush happens inside on minute rollover).
         usageAggregator.feed(entities: entities, interval: interval, now: Date())
+        // Period totals for quota + menu bar (throttled internally).
+        SharedStore.usageAggregator.tick()
 
         DispatchQueue.main.async {
             // History is pushed *before* the per-frame observers so the sparkline

@@ -7,6 +7,7 @@
 
 import Cocoa
 import SwiftUI
+import Combine
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -71,14 +72,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if let button = self.statusBarItem.button {
             button.action = #selector(togglePopover(_:))
-            let view = NSHostingView(rootView: statusBarView)
-            view.setFrameSize(NSSize(width: 60, height: NSStatusBar.system.thickness))            
-            button.subviews.forEach { $0.removeFromSuperview() }
-            button.addSubview(view)
-            self.statusBarItem.length = 60
+            let hosting = NSHostingView(rootView: statusBarView)
+            applyStatusBarFit(hosting, to: button)
+            self.statusBarItem.length = statusBarLength
+
+            // Extra segments (today/month totals) change the ideal width —
+            // re-measure whenever those settings flip.
+            SettingsStore.shared.$showTodayInMenuBar
+                .combineLatest(SettingsStore.shared.$showMonthInMenuBar)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _, _ in
+                    guard let self, let button = self.statusBarItem?.button else { return }
+                    for sub in button.subviews {
+                        self.applyStatusBarFit(sub, to: button)
+                        self.statusBarItem?.length = self.statusBarLength
+                    }
+                }
+                .store(in: &statusBarCancellables)
         }
-        
+
         self.network.startListenNetwork()
+    }
+
+    // Menu-bar fitting: the hosting view is width-flexible (extra segments
+    // appear/disappear via settings), so the status item length tracks its
+    // fitting size with a sane minimum.
+    private var statusBarLength: CGFloat = 60
+    private var statusBarCancellables: Set<AnyCancellable> = []
+
+    private func applyStatusBarFit(_ view: NSView, to button: NSStatusBarButton) {
+        let thickness = NSStatusBar.system.thickness
+        view.setFrameSize(NSSize(width: 60, height: thickness))
+        let ideal = view.fittingSize
+        let width = max(40, ideal.width > 0 ? ideal.width : 60)
+        view.setFrameSize(NSSize(width: width, height: thickness))
+        view.frame.origin = NSPoint(x: 0, y: 0)
+        statusBarLength = width
+        button.subviews.forEach { $0.removeFromSuperview() }
+        button.addSubview(view)
     }
 
     

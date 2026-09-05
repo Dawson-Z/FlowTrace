@@ -55,3 +55,17 @@
 "Heatmap" = "Heatmap";
 "App usage" = "App usage";
 "no usage recorded" = "No usage recorded yet";
+"Show today total" = "Show today total";
+"Show month total" = "Show month total";
+"Quota" = "Quota";
+"Enable quota alerts" = "Enable quota alerts";
+"Period" = "Period";
+"Month" = "Month";
+"Week" = "Week";
+"Day" = "Day";
+"Limit (GB)" = "Limit (GB)";
+"Custom threshold (%)" = "Custom threshold (%)";
+"Off" = "Off";
+"Alerts fire once per period at 80%, 100% and your custom threshold." = "Alerts fire once per period at 80%, 100% and your custom threshold.";
+"Quota threshold reached" = "Quota threshold reached";
+"Used %1$@ of %2$@ (%3$ld%%)" = "Used %1$@ of %2$@ (%3$ld%%)";

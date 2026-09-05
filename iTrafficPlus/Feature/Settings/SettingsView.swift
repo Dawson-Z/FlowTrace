@@ -107,6 +107,68 @@ struct SettingsView: View {
                 Toggle("", isOn: $settings.showUploadInStatusBar)
                     .labelsHidden()
             }
+            HStack {
+                Text(Loc.l("Show today total"))
+                Spacer()
+                Toggle("", isOn: $settings.showTodayInMenuBar)
+                    .labelsHidden()
+            }
+            HStack {
+                Text(Loc.l("Show month total"))
+                Spacer()
+                Toggle("", isOn: $settings.showMonthInMenuBar)
+                    .labelsHidden()
+            }
+
+            Divider()
+
+            // MARK: - Quota
+            Text(Loc.l("Quota"))
+                .font(.system(size: 13, weight: .semibold))
+
+            HStack {
+                Text(Loc.l("Enable quota alerts"))
+                Spacer()
+                Toggle("", isOn: quotaEnabledBinding)
+                    .labelsHidden()
+            }
+
+            if settings.quotaEnabled {
+                HStack {
+                    Text(Loc.l("Period"))
+                    Spacer()
+                    Picker("", selection: $settings.quotaPeriod) {
+                        Text(Loc.l("Month")).tag("month")
+                        Text(Loc.l("Week")).tag("week")
+                        Text(Loc.l("Day")).tag("day")
+                    }
+                    .labelsHidden()
+                    .frame(width: 130)
+                }
+                HStack {
+                    Text(Loc.l("Limit (GB)"))
+                    Spacer()
+                    Stepper("", value: $settings.quotaLimitGB, in: 1...10000)
+                        .labelsHidden()
+                    Text("\(settings.quotaLimitGB)")
+                        .font(.system(size: 11, design: .monospaced))
+                        .frame(width: 46, alignment: .trailing)
+                }
+                HStack {
+                    Text(Loc.l("Custom threshold (%)"))
+                    Spacer()
+                    Stepper("", value: $settings.quotaCustomPercent, in: 0...99)
+                        .labelsHidden()
+                    Text(settings.quotaCustomPercent == 0
+                         ? Loc.l("Off")
+                         : "\(settings.quotaCustomPercent)%")
+                        .font(.system(size: 11, design: .monospaced))
+                        .frame(width: 46, alignment: .trailing)
+                }
+                Text(Loc.l("Alerts fire once per period at 80%, 100% and your custom threshold."))
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+            }
 
             Divider()
 
@@ -162,7 +224,18 @@ struct SettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 380, height: 500)
+        .frame(width: 380, height: 660)
+    }
+
+    /// Enabling quota alerts also asks for notification permission.
+    private var quotaEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { settings.quotaEnabled },
+            set: { on in
+                settings.quotaEnabled = on
+                if on { QuotaMonitor.requestAuthorization() }
+            }
+        )
     }
 
     /// Selection binding for the segmented interval control. The getter

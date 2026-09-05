@@ -66,6 +66,25 @@ final class SettingsStore: ObservableObject {
     /// the `.lproj` bundle; changing it repaints the UI immediately.
     @Published var languageOverride: String?
 
+    // MARK: - Quota
+
+    /// Master switch for quota alerts. Turning it on requests notification
+    /// authorization (handled in the settings binding layer).
+    @Published var quotaEnabled: Bool
+    /// Quota period: "month" / "week" / "day" (month default).
+    @Published var quotaPeriod: String
+    /// Quota limit in GB (1…10000).
+    @Published var quotaLimitGB: Int
+    /// Extra custom threshold percent (0 = off; 80/100 always on).
+    @Published var quotaCustomPercent: Int
+
+    // MARK: - Menu bar totals
+
+    /// Show today's accumulated total in the menu bar.
+    @Published var showTodayInMenuBar: Bool
+    /// Show this month's accumulated total in the menu bar.
+    @Published var showMonthInMenuBar: Bool
+
     private enum K {
         static let launchAtLogin              = "launchAtLogin"
         static let defaultSortModeRaw         = "defaultSortModeRaw"
@@ -75,6 +94,12 @@ final class SettingsStore: ObservableObject {
         static let historyRetentionDays       = "historyRetentionDays"
         static let refreshInterval            = "refreshInterval"
         static let languageOverride           = "languageOverride"
+        static let quotaEnabled               = "quotaEnabled"
+        static let quotaPeriod                = "quotaPeriod"
+        static let quotaLimitGB               = "quotaLimitGB"
+        static let quotaCustomPercent         = "quotaCustomPercent"
+        static let showTodayInMenuBar         = "showTodayInMenuBar"
+        static let showMonthInMenuBar         = "showMonthInMenuBar"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -95,6 +120,12 @@ final class SettingsStore: ObservableObject {
         self._historyRetentionDays    = Published(initialValue: defaults.object(forKey: K.historyRetentionDays) as? Int ?? 7)
         self._refreshInterval         = Published(initialValue: defaults.object(forKey: K.refreshInterval) as? Int ?? 2)
         self._languageOverride        = Published(initialValue: defaults.string(forKey: K.languageOverride))
+        self._quotaEnabled            = Published(initialValue: defaults.object(forKey: K.quotaEnabled) as? Bool ?? false)
+        self._quotaPeriod             = Published(initialValue: defaults.string(forKey: K.quotaPeriod) ?? "month")
+        self._quotaLimitGB            = Published(initialValue: defaults.object(forKey: K.quotaLimitGB) as? Int ?? 100)
+        self._quotaCustomPercent      = Published(initialValue: defaults.object(forKey: K.quotaCustomPercent) as? Int ?? 0)
+        self._showTodayInMenuBar      = Published(initialValue: defaults.object(forKey: K.showTodayInMenuBar) as? Bool ?? false)
+        self._showMonthInMenuBar      = Published(initialValue: defaults.object(forKey: K.showMonthInMenuBar) as? Bool ?? false)
 
         // Each sink starts with the just-loaded value; `.dropFirst()` skips
         // that initial replay, so only real user edits round-trip to disk.
@@ -138,6 +169,24 @@ final class SettingsStore: ObservableObject {
             .store(in: &cancellables)
         $languageOverride.dropFirst()
             .sink { [weak self] v in self?.defaults.set(v, forKey: K.languageOverride) }
+            .store(in: &cancellables)
+        $quotaEnabled.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.quotaEnabled) }
+            .store(in: &cancellables)
+        $quotaPeriod.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.quotaPeriod) }
+            .store(in: &cancellables)
+        $quotaLimitGB.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.quotaLimitGB) }
+            .store(in: &cancellables)
+        $quotaCustomPercent.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.quotaCustomPercent) }
+            .store(in: &cancellables)
+        $showTodayInMenuBar.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showTodayInMenuBar) }
+            .store(in: &cancellables)
+        $showMonthInMenuBar.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showMonthInMenuBar) }
             .store(in: &cancellables)
     }
 }

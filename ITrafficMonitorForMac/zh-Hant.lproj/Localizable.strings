@@ -55,3 +55,17 @@
 "Heatmap" = "熱力圖";
 "App usage" = "程式用量";
 "no usage recorded" = "暫無使用記錄";
+"Show today total" = "顯示今日累計";
+"Show month total" = "顯示本月累計";
+"Quota" = "流量配額";
+"Enable quota alerts" = "啟用配額提醒";
+"Period" = "週期";
+"Month" = "月";
+"Week" = "週";
+"Day" = "日";
+"Limit (GB)" = "上限 (GB)";
+"Custom threshold (%)" = "自訂閾值 (%)";
+"Off" = "關閉";
+"Alerts fire once per period at 80%, 100% and your custom threshold." = "每個週期在 80%、100% 及自訂閾值時各提醒一次。";
+"Quota threshold reached" = "流量配額提醒";
+"Used %1$@ of %2$@ (%3$ld%%)" = "已用 %1$@ / %2$@（%3$ld%%）";

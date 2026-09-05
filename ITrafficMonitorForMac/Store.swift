@@ -37,6 +37,14 @@ enum SharedStore {
     /// degrade to memory-only.
     static private(set) var historyPersistence: HistoryPersistence?
 
+    /// Period usage integrator (quota + menu-bar totals share this single
+    /// source). Reads `process_usage` bytes; throttled internally.
+    static let usageAggregator = UsageAggregator()
+
+    /// Quota threshold watcher; observes usage only while
+    /// `SettingsStore.quotaEnabled` is on.
+    static let quotaMonitor = QuotaMonitor()
+
     /// Wire SQLite persistence into the singletons. Must be called from
     /// `applicationDidFinishLaunching` (or any point strictly before the
     /// popover is first shown). Replaces the in-memory store with one
