@@ -148,3 +148,33 @@
 ### Next Steps
 
 - 待做队列: quota-alerts → menubar-display-mode → upload-anomaly-alerts → data-export → process-knowledge-base
+
+
+## Session 5: m14 修复:程序用量列表显示重复名称(pid 缓存槽冲突)
+<!-- trellis-session: v=2 fp=9c2c63a8373d8a58 -->
+
+**Date**: 2026-09-06
+**Task**: m14 修复:程序用量列表显示重复名称(pid 缓存槽冲突)
+**Branch**: `main`
+
+### Summary
+
+getAppInfo 按 pid 缓存导致聚合行全部命中 pid-0 缓存槽显示同一名字; 新增按进程名缓存的 getAggregatedAppInfo(仅借图标,显示名保持真实进程名)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0faa8bf` | iTrafficPlus 0.3.0 fix (m14): App usage rows showed one duplicated name — getAppInfo cached by pid 0; new name-keyed getAggregatedAppInfo |
+
+### Testing
+
+- [OK] sqlite 验证数据层无重复(name_variants=1); 用户确认显示正常
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- quota-alerts + menubar-display-mode(共享 UsageAggregator)

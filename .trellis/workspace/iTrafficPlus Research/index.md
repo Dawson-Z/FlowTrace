@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 4
+- **Total Sessions**: 5
 - **Last Active**: 2026-09-06
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~150 | Active |
+| `journal-1.md` | ~180 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 5 | 2026-09-06 | m14 修复:程序用量列表显示重复名称(pid 缓存槽冲突) | `0faa8bf` | `main` |
 | 4 | 2026-09-06 | m14 程序用量历史(分钟预聚合) + Bytetally A 类任务补全 | `fe48d87` | `main` |
 | 3 | 2026-09-05 | m13 历史窗口热力图 + 接口历史持久化 + Bytetally 覆盖补全 | `7746205` | `main` |
 | 2 | 2026-09-04 | m12 多语本地化(zh-Hans/en/zh-Hant) + 排序/间隔 UX 修复 | `079722c`, `8cad6a3` | `main` |
