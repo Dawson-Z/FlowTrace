@@ -64,6 +64,23 @@ struct HeatmapCell: Equatable {
     let avgOutBytesPerSec: Int
 }
 
+/// Aggregated per-process usage over a queried range: SUM(bytes) GROUP BY
+/// name_key, display name via MAX(name).
+struct ProcessUsageSummary: Equatable {
+    let name: String
+    let inBytes: Int
+    let outBytes: Int
+}
+
+/// One flush unit into `process_usage` (see ProcessUsageAggregator).
+struct ProcessUsageFlushRow {
+    let minuteBucket: Int
+    let name: String
+    let nameKey: String
+    let inBytes: Int
+    let outBytes: Int
+}
+
 final class HistoryPersistence {
 
     /// App Support / iTrafficPlus / history.sqlite3 — created on demand.
@@ -141,6 +158,15 @@ final class HistoryPersistence {
                 out_bps INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_iface_ts_cat ON interface_history(ts, category);
+            CREATE TABLE IF NOT EXISTS process_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                minute_bucket INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                name_key TEXT NOT NULL,
+                in_bytes INTEGER NOT NULL,
+                out_bytes INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_pu_minute ON process_usage(minute_bucket);
             """
         var err: UnsafeMutablePointer<CChar>?
         if sqlite3_exec(db, sql, nil, nil, &err) != SQLITE_OK {
@@ -151,15 +177,23 @@ final class HistoryPersistence {
     }
 
     private func prune() {
-        let cutoff = Int64(Date().timeIntervalSince1970 * 1000) - Int64(retentionSeconds * 1000)
+        let cutoffMs = Int64(Date().timeIntervalSince1970 * 1000) - Int64(retentionSeconds * 1000)
         for table in ["history", "interface_history"] {
             var stmt: OpaquePointer?
             defer { sqlite3_finalize(stmt) }
             let sql = "DELETE FROM \(table) WHERE ts < ?;"
             guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { continue }
-            sqlite3_bind_int64(stmt, 1, cutoff)
+            sqlite3_bind_int64(stmt, 1, cutoffMs)
             sqlite3_step(stmt)
         }
+        // process_usage stores local *minute* ordinals, not epoch ms.
+        var stmt: OpaquePointer?
+        defer { sqlite3_finalize(stmt) }
+        let tzMs = Int64(TimeZone.current.secondsFromGMT()) * 1000
+        let cutoffBucket = (cutoffMs + tzMs) / 60000
+        guard sqlite3_prepare_v2(db, "DELETE FROM process_usage WHERE minute_bucket < ?;", -1, &stmt, nil) == SQLITE_OK else { return }
+        sqlite3_bind_int64(stmt, 1, cutoffBucket)
+        sqlite3_step(stmt)
     }
 
     // MARK: - Write (async, serialised)
@@ -378,6 +412,70 @@ final class HistoryPersistence {
                                          fromMs: fromMs, toMs: toMs,
                                          categories: categories)
             DispatchQueue.main.async { completion(cells) }
+        }
+    }
+
+    // MARK: - Process usage (per-app usage history)
+
+    /// Batch-insert flushed minute rows. Async on the db queue.
+    func appendProcessUsage(_ rows: [ProcessUsageFlushRow]) {
+        queue.async { [weak self] in
+            guard let self, !rows.isEmpty else { return }
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            let sql = "INSERT INTO process_usage (minute_bucket, name, name_key, in_bytes, out_bytes) VALUES (?, ?, ?, ?, ?);"
+            guard sqlite3_prepare_v2(self.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                Log.persistence.error("prepare process_usage insert failed: \(String(cString: sqlite3_errmsg(self.db)))")
+                return
+            }
+            for row in rows {
+                sqlite3_reset(stmt)
+                sqlite3_bind_int64(stmt, 1, Int64(row.minuteBucket))
+                sqlite3_bind_text(stmt, 2, row.name, -1, SQLITE_TRANSIENT_BRIDGE)
+                sqlite3_bind_text(stmt, 3, row.nameKey, -1, SQLITE_TRANSIENT_BRIDGE)
+                sqlite3_bind_int64(stmt, 4, Int64(row.inBytes))
+                sqlite3_bind_int64(stmt, 5, Int64(row.outBytes))
+                if sqlite3_step(stmt) != SQLITE_DONE {
+                    Log.persistence.error("process_usage insert failed: \(String(cString: sqlite3_errmsg(self.db)))")
+                }
+            }
+        }
+    }
+
+    /// SUM(bytes) per process over a local-minute bucket range, grouped by
+    /// `name_key` (case-stable), display name via MAX(name). Main-queue
+    /// callback, db-queue scan.
+    func processUsage(fromBucket: Int, toBucket: Int,
+                      completion: @escaping ([ProcessUsageSummary]) -> Void) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            var rows: [ProcessUsageSummary] = []
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            let sql = """
+                SELECT MAX(name), SUM(in_bytes), SUM(out_bytes)
+                FROM process_usage
+                WHERE minute_bucket >= ? AND minute_bucket < ?
+                GROUP BY name_key
+                ORDER BY SUM(in_bytes) + SUM(out_bytes) DESC;
+                """
+            guard sqlite3_prepare_v2(self.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                Log.persistence.error("process_usage query failed: \(String(cString: sqlite3_errmsg(self.db)))")
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            sqlite3_bind_int64(stmt, 1, Int64(fromBucket))
+            sqlite3_bind_int64(stmt, 2, Int64(toBucket))
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                if let nameC = sqlite3_column_text(stmt, 0) {
+                    rows.append(ProcessUsageSummary(
+                        name: String(cString: nameC),
+                        inBytes: Int(sqlite3_column_int64(stmt, 1)),
+                        outBytes: Int(sqlite3_column_int64(stmt, 2))
+                    ))
+                }
+            }
+            DispatchQueue.main.async { completion(rows) }
         }
     }
 }

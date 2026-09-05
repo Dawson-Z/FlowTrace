@@ -2,18 +2,62 @@
 //  HistoryWindowView.swift
 //  iTrafficPlus — Feature/History
 //
-//  Content of the standalone history window: range selector (presets +
-//  custom dates), interface-category filter, direction toggle, and the
-//  heatmap grid. Owns its HistoryHeatmapModel so filters survive window
-//  close/reopen (the hosting controller is cached by AppDelegate).
+//  Content of the standalone history window. Two tabs:
+//    - Heatmap (hour × day grid, totals + interface-category filter)
+//    - App usage (per-process accumulated bytes over a range)
+//
+//  Both tabs keep their own @StateObject models, so switching tabs and
+//  coming back preserves filters. The hosting controller is cached by
+//  AppDelegate, so the state also survives window close/reopen.
 //
 
 import SwiftUI
 
+private enum HistoryTab: String, CaseIterable, Identifiable {
+    case heatmap
+    case appUsage
+
+    var id: String { rawValue }
+
+    var labelKey: String {
+        switch self {
+        case .heatmap:  return "Heatmap"
+        case .appUsage: return "App usage"
+        }
+    }
+}
+
 struct HistoryWindowView: View {
+    @State private var tab: HistoryTab = .heatmap
+    @ObservedObject private var l10n = LocalizationManager.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Picker("", selection: $tab) {
+                ForEach(HistoryTab.allCases) { tab in
+                    Text(Loc.l(tab.labelKey)).tag(tab)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+
+            switch tab {
+            case .heatmap:
+                HistoryHeatmapTabView()
+            case .appUsage:
+                AppUsageView()
+            }
+        }
+        .padding(14)
+        .frame(width: 680, height: 480)
+    }
+}
+
+/// Extracted so each tab's @StateObject lives as long as the window, not as
+/// long as the switch branch (a plain `if` would recreate models on toggle).
+private struct HistoryHeatmapTabView: View {
     @StateObject private var model = HistoryHeatmapModel()
     @State private var direction: HeatmapDirection = .dayPerRow
-    // Observing LocalizationManager repaints on language change.
     @ObservedObject private var l10n = LocalizationManager.shared
 
     var body: some View {
@@ -109,8 +153,6 @@ struct HistoryWindowView: View {
                     .foregroundColor(.secondary)
             }
         }
-        .padding(14)
-        .frame(width: 680, height: 480)
         .onAppear { model.reload() }
     }
 

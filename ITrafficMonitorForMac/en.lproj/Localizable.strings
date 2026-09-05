@@ -40,3 +40,18 @@
 "Simplified Chinese" = "Simplified Chinese";
 "English" = "English";
 "Traditional Chinese" = "Traditional Chinese";
+"Full history" = "Full history";
+"Today" = "Today";
+"Last 7 days" = "Last 7 days";
+"Last 30 days" = "Last 30 days";
+"Custom" = "Custom";
+"From" = "From";
+"To" = "To";
+"Less" = "Less";
+"More" = "More";
+"Day as row" = "Day as row";
+"Day as column" = "Day as column";
+"hour cell = mean rate; ≈volume = rate × 1 h" = "cell colour = hour mean rate; hover ≈ volume = rate × 1 h";
+"Heatmap" = "Heatmap";
+"App usage" = "App usage";
+"no usage recorded" = "No usage recorded yet";

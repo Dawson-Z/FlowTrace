@@ -26,6 +26,11 @@ class Network {
     private var interfaceMonitor: InterfaceMonitor?
     private var interfaceTopMonitor: InterfaceTopMonitor?
 
+    /// Per-minute process usage accumulator (per-app usage history).
+    private lazy var usageAggregator = ProcessUsageAggregator {
+        SharedStore.historyPersistence
+    }
+
     private func makeRunner() -> NettopRunner {
         let r = NettopRunner(interval: interval)
         r.onFrame = { [weak self] lines in
@@ -122,6 +127,9 @@ class Network {
     /// it must be current before the new subprocesses produce frames.
     private func applyRefreshInterval(to newInterval: Int) {
         guard newInterval != interval else { return }
+        // Settle the in-flight usage bucket with the interval that was in
+        // effect for its frames BEFORE the rate normalisation changes.
+        usageAggregator.flush(using: interval)
         interval = newInterval
         Log.network.info("refresh interval changed to \(newInterval)s; restarting collectors")
         runner?.stop()
@@ -146,6 +154,10 @@ class Network {
             totalOutRate += entity.outBytesPerSec
             return entity
         }
+
+        // Per-app usage history: accumulate this frame into the current
+        // minute bucket (flush happens inside on minute rollover).
+        usageAggregator.feed(entities: entities, interval: interval, now: Date())
 
         DispatchQueue.main.async {
             // History is pushed *before* the per-frame observers so the sparkline

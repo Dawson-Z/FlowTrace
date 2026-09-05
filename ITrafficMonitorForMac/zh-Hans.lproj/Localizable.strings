@@ -40,3 +40,18 @@
 "Simplified Chinese" = "简体中文";
 "English" = "英文";
 "Traditional Chinese" = "繁体中文";
+"Full history" = "完整历史";
+"Today" = "今天";
+"Last 7 days" = "最近 7 天";
+"Last 30 days" = "最近 30 天";
+"Custom" = "自定义";
+"From" = "从";
+"To" = "到";
+"Less" = "少";
+"More" = "多";
+"Day as row" = "每天一行";
+"Day as column" = "每天一列";
+"hour cell = mean rate; ≈volume = rate × 1 h" = "格子颜色 = 小时平均速率；悬停 ≈ 流量 = 速率 × 1 小时";
+"Heatmap" = "热力图";
+"App usage" = "程序用量";
+"no usage recorded" = "暂无使用记录";
