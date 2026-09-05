@@ -178,3 +178,33 @@ getAppInfo 按 pid 缓存导致聚合行全部命中 pid-0 缓存槽显示同一
 ### Next Steps
 
 - quota-alerts + menubar-display-mode(共享 UsageAggregator)
+
+
+## Session 6: m15 配额提醒 + 菜单栏累计显示
+<!-- trellis-session: v=2 fp=ee8e0ac7c8e7b921 -->
+
+**Date**: 2026-09-06
+**Task**: m15 配额提醒 + 菜单栏累计显示
+**Branch**: `main`
+
+### Summary
+
+UsageAggregator 共享用量积分器(process_usage 字节口径)+QuotaMonitor 阈值通知+菜单栏今日/本月累计段
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b864612` | chore(task): archive 09-05-menubar-display-mode |
+
+### Testing
+
+- [OK] verify_quota.swift 14/14 PASS; xcodebuild BUILD SUCCEEDED
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 剩余队列: upload-anomaly-alerts → data-export → process-knowledge-base
