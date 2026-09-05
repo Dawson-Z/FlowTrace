@@ -39,6 +39,26 @@ class Network {
         let m = InterfaceMonitor(interval: interval, classifier: classifier)
         m.onAggregate = { [weak self] snapshot in
             SharedStore.interfaceModel.update(snapshot)
+
+            // Persist per-category rates for the history heatmap. The
+            // snapshot carries *window deltas* (bytes over one sample), so
+            // normalise once here — the single point where interface numbers
+            // enter the app — dividing by the current interval. Downstream
+            // readers must never divide again (see issue #28).
+            guard let self, let persistence = SharedStore.historyPersistence else { return }
+            let ts = Int64(Date().timeIntervalSince1970 * 1000)
+            let rows: [InterfaceHistoryRow] = InterfaceCategory.allCases.compactMap { cat in
+                let inDelta = snapshot.bytesIn[cat] ?? 0
+                let outDelta = snapshot.bytesOut[cat] ?? 0
+                guard inDelta != 0 || outDelta != 0 else { return nil }
+                return InterfaceHistoryRow(
+                    ts: ts,
+                    category: cat.rawValue,
+                    inBytesPerSec: inDelta / self.interval,
+                    outBytesPerSec: outDelta / self.interval
+                )
+            }
+            persistence.appendInterface(rows)
         }
         Log.interface.info("interface monitor launched; ports=\(classifier.portByDevice)")
         return m

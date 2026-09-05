@@ -30,7 +30,14 @@ enum SharedStore {
     // without coupling to the process-level data path (milestone 9).
     static var interfaceModel = InterfaceModel()
 
-    /// Wire SQLite persistence into the singleton. Must be called from
+    /// The one SQLite handle, shared by `HistoryStore` (per-frame totals)
+    /// and `Network` (per-category interface rows) so both write through
+    /// the same serial queue / WAL connection. Set during launch by
+    /// `attachHistoryPersistence`; nil = persistence failed, features
+    /// degrade to memory-only.
+    static private(set) var historyPersistence: HistoryPersistence?
+
+    /// Wire SQLite persistence into the singletons. Must be called from
     /// `applicationDidFinishLaunching` (or any point strictly before the
     /// popover is first shown). Replaces the in-memory store with one
     /// that also writes every frame to `~/Library/Application Support/
@@ -38,6 +45,7 @@ enum SharedStore {
     /// most recent 60 rows on disk so the sparkline is not empty after
     /// a restart.
     static func attachHistoryPersistence(_ p: HistoryPersistence) {
+        historyPersistence = p
         historyStore = HistoryStore(capacity: 60, persistence: p)
         historyStore.bootstrap()
     }

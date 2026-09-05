@@ -45,6 +45,25 @@ struct HistoryRow {
     let outBytesPerSec: Int
 }
 
+/// One row in the `interface_history` table: per-`InterfaceCategory` rates
+/// for a single frame.
+struct InterfaceHistoryRow {
+    let ts: Int64              // ms since epoch
+    let category: String       // InterfaceCategory.rawValue (stable across locales)
+    let inBytesPerSec: Int
+    let outBytesPerSec: Int
+}
+
+/// One heatmap cell: the average in/out rate over one *local* hour bucket.
+/// `day` is the local day count since 1970-01-01 (day = bucket / 24 after
+/// applying the timezone offset), `hour` the local hour (bucket % 24).
+struct HeatmapCell: Equatable {
+    let day: Int
+    let hour: Int
+    let avgInBytesPerSec: Int
+    let avgOutBytesPerSec: Int
+}
+
 final class HistoryPersistence {
 
     /// App Support / iTrafficPlus / history.sqlite3 — created on demand.
@@ -114,6 +133,14 @@ final class HistoryPersistence {
                 out_bps INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_history_ts ON history(ts);
+            CREATE TABLE IF NOT EXISTS interface_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                in_bps INTEGER NOT NULL,
+                out_bps INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_iface_ts_cat ON interface_history(ts, category);
             """
         var err: UnsafeMutablePointer<CChar>?
         if sqlite3_exec(db, sql, nil, nil, &err) != SQLITE_OK {
@@ -125,12 +152,14 @@ final class HistoryPersistence {
 
     private func prune() {
         let cutoff = Int64(Date().timeIntervalSince1970 * 1000) - Int64(retentionSeconds * 1000)
-        var stmt: OpaquePointer?
-        defer { sqlite3_finalize(stmt) }
-        let sql = "DELETE FROM history WHERE ts < ?;"
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { return }
-        sqlite3_bind_int64(stmt, 1, cutoff)
-        sqlite3_step(stmt)
+        for table in ["history", "interface_history"] {
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            let sql = "DELETE FROM \(table) WHERE ts < ?;"
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { continue }
+            sqlite3_bind_int64(stmt, 1, cutoff)
+            sqlite3_step(stmt)
+        }
     }
 
     // MARK: - Write (async, serialised)
@@ -226,5 +255,129 @@ final class HistoryPersistence {
             todayPeakIn: peakIn, todayPeakOut: peakOut,
             avgLast24hIn: avgIn, avgLast24hOut: avgOut
         )
+    }
+
+    // MARK: - Interface history (milestone: heatmap)
+
+    /// Append per-category interface rows. Returns immediately; the write
+    /// happens on the private serial queue (never the main thread).
+    func appendInterface(_ rows: [InterfaceHistoryRow]) {
+        queue.async { [weak self] in
+            guard let self, !rows.isEmpty else { return }
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            let sql = "INSERT INTO interface_history (ts, category, in_bps, out_bps) VALUES (?, ?, ?, ?);"
+            guard sqlite3_prepare_v2(self.db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                Log.persistence.error("prepare interface insert failed: \(String(cString: sqlite3_errmsg(self.db)))")
+                return
+            }
+            for row in rows {
+                sqlite3_reset(stmt)
+                sqlite3_bind_int64(stmt, 1, row.ts)
+                sqlite3_bind_text(stmt, 2, row.category, -1, SQLITE_TRANSIENT_BRIDGE)
+                sqlite3_bind_int64(stmt, 3, Int64(row.inBytesPerSec))
+                sqlite3_bind_int64(stmt, 4, Int64(row.outBytesPerSec))
+                if sqlite3_step(stmt) != SQLITE_DONE {
+                    Log.persistence.error("interface insert step failed: \(String(cString: sqlite3_errmsg(self.db)))")
+                }
+            }
+        }
+    }
+
+    // MARK: - Heatmap aggregation
+
+    /// Aggregate one table over `[fromMs, toMs)` into local-hour buckets.
+    ///
+    /// Bucket value is AVG(rate): rates are already bytes/sec, so the bucket
+    /// average is that hour's mean rate — multiply by 3600 in the *display
+    /// layer* for "bytes this hour". This stays correct regardless of the
+    /// user's sample interval (1/2/5 s), unlike SUM.
+    ///
+    /// `categories` nil = aggregate the totals table (`history`); non-nil =
+    /// `interface_history` filtered to those categories (empty set = no data).
+    private func heatmapSync(table: String,
+                             fromMs: Int64,
+                             toMs: Int64,
+                             categories: [String]?) -> [HeatmapCell] {
+        // Shift timestamps into local time so bucket % 24 is the local hour.
+        let tzMs = Int64(TimeZone.current.secondsFromGMT()) * 1000
+
+        var sql: String
+        if let categories {
+            let placeholders = categories.map { _ in "?" }.joined(separator: ",")
+            sql = """
+                SELECT CAST((ts + \(tzMs)) / 3600000 AS INTEGER) AS bucket,
+                       AVG(in_bps), AVG(out_bps)
+                FROM \(table)
+                WHERE ts >= ? AND ts < ? AND category IN (\(placeholders))
+                GROUP BY bucket
+                ORDER BY bucket;
+                """
+        } else {
+            sql = """
+                SELECT CAST((ts + \(tzMs)) / 3600000 AS INTEGER) AS bucket,
+                       AVG(in_bps), AVG(out_bps)
+                FROM \(table)
+                WHERE ts >= ? AND ts < ?
+                GROUP BY bucket
+                ORDER BY bucket;
+                """
+        }
+
+        var stmt: OpaquePointer?
+        defer { sqlite3_finalize(stmt) }
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            Log.persistence.error("heatmap prepare failed: \(String(cString: sqlite3_errmsg(db)))")
+            return []
+        }
+
+        var index: Int32 = 1
+        sqlite3_bind_int64(stmt, index, fromMs); index += 1
+        sqlite3_bind_int64(stmt, index, toMs); index += 1
+        for category in categories ?? [] {
+            sqlite3_bind_text(stmt, index, category, -1, SQLITE_TRANSIENT_BRIDGE); index += 1
+        }
+
+        var cells: [HeatmapCell] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let bucket = Int(sqlite3_column_int64(stmt, 0))
+            let avgIn = Int(sqlite3_column_int64(stmt, 1))
+            let avgOut = Int(sqlite3_column_int64(stmt, 2))
+            cells.append(HeatmapCell(
+                day: bucket / 24,
+                hour: bucket % 24,
+                avgInBytesPerSec: avgIn,
+                avgOutBytesPerSec: avgOut
+            ))
+        }
+        return cells
+    }
+
+    /// Total-traffic heatmap (no category dimension).
+    func historyHeatmap(fromMs: Int64, toMs: Int64,
+                        completion: @escaping ([HeatmapCell]) -> Void) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            let cells = self.heatmapSync(table: "history", fromMs: fromMs, toMs: toMs, categories: nil)
+            DispatchQueue.main.async { completion(cells) }
+        }
+    }
+
+    /// Per-category heatmap. `categories` empty = empty result (the user
+    /// unchecked everything, which reads as "no data" rather than "all").
+    func interfaceHeatmap(fromMs: Int64, toMs: Int64,
+                          categories: [String],
+                          completion: @escaping ([HeatmapCell]) -> Void) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            guard !categories.isEmpty else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            let cells = self.heatmapSync(table: "interface_history",
+                                         fromMs: fromMs, toMs: toMs,
+                                         categories: categories)
+            DispatchQueue.main.async { completion(cells) }
+        }
     }
 }

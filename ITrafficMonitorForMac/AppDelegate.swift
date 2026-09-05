@@ -152,6 +152,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Log.appDelegate.info("settings window opened")
     }
 
+    // MARK: - History window
+    //
+    // Same lazy-window pattern as the settings window: created on first
+    // click, reused after. The SwiftUI state inside (filters, range)
+    // survives close/reopen because the hosting controller is cached.
+
+    private var historyWindow: NSWindow?
+
+    @objc func showHistoryWindow() {
+        if let window = historyWindow, window.isVisible {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let host = NSHostingController(rootView: HistoryWindowView())
+        let window = NSWindow(contentViewController: host)
+        window.title = Loc.l("History")
+        window.styleMask = [.titled, .closable, .resizable]
+        window.isReleasedWhenClosed = false
+        window.setContentSize(NSSize(width: 680, height: 480))
+        window.center()
+        historyWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        Log.appDelegate.info("history window opened")
+    }
+
     func applicationWillResignActive(_ aNotification: Notification)
     {
         Log.appDelegate.debug("lost focus")

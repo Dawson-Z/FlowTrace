@@ -1,0 +1,98 @@
+//
+//  HistoryHeatmapModel.swift
+//  iTrafficPlus — Feature/History
+//
+//  Drives the standalone history window: resolves the selected time range
+//  and interface-category filter into ms boundaries, asks HistoryPersistence
+//  for the hour-bucketed heatmap, and publishes the cells.
+//
+//  Data-source rule: with ALL categories selected we query the totals table
+//  (`history`), which has data from before interface history existed; with a
+//  subset selected we query `interface_history` filtered by category —
+//  mathematically "all categories ≈ totals", and gracefully degrading for
+//  databases that predate interface history.
+//
+
+import Foundation
+
+enum HeatmapRange: String, CaseIterable, Identifiable {
+    case today
+    case last7Days
+    case last30Days
+    case custom
+
+    var id: String { rawValue }
+
+    var labelKey: String {
+        switch self {
+        case .today:      return "Today"
+        case .last7Days:  return "Last 7 days"
+        case .last30Days: return "Last 30 days"
+        case .custom:     return "Custom"
+        }
+    }
+}
+
+final class HistoryHeatmapModel: ObservableObject {
+
+    @Published var range: HeatmapRange = .last7Days {
+        didSet { reload() }
+    }
+    /// Bounds for `.custom`, interpreted as local calendar days.
+    @Published var customFrom: Date = Calendar.current.date(byAdding: .day, value: -6, to: Calendar.current.startOfDay(for: Date())) ?? Date() {
+        didSet { if range == .custom { reload() } }
+    }
+    @Published var customTo: Date = Date() {
+        didSet { if range == .custom { reload() } }
+    }
+    /// Which interface categories to include. All selected = totals table.
+    @Published var selectedCategories: Set<InterfaceCategory> = Set(InterfaceCategory.allCases) {
+        didSet { reload() }
+    }
+
+    /// Hour-bucketed cells from the persistence layer (main queue).
+    @Published private(set) var cells: [HeatmapCell] = []
+
+    private var persistence: HistoryPersistence? { SharedStore.historyPersistence }
+
+    func reload() {
+        guard let persistence else { return }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) ?? today
+
+        let from: Date
+        let to: Date
+        switch range {
+        case .today:
+            from = today; to = tomorrow
+        case .last7Days:
+            from = calendar.date(byAdding: .day, value: -6, to: today) ?? today; to = tomorrow
+        case .last30Days:
+            from = calendar.date(byAdding: .day, value: -29, to: today) ?? today; to = tomorrow
+        case .custom:
+            from = calendar.startOfDay(for: customFrom)
+            to = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: customTo)) ?? tomorrow
+        }
+        let fromMs = Int64(from.timeIntervalSince1970 * 1000)
+        let toMs = Int64(to.timeIntervalSince1970 * 1000)
+
+        if selectedCategories.count == InterfaceCategory.allCases.count {
+            persistence.historyHeatmap(fromMs: fromMs, toMs: toMs) { [weak self] cells in
+                self?.cells = cells
+            }
+        } else {
+            let categories = selectedCategories.map(\.rawValue).sorted()
+            persistence.interfaceHeatmap(fromMs: fromMs, toMs: toMs, categories: categories) { [weak self] cells in
+                self?.cells = cells
+            }
+        }
+    }
+
+    /// Local Date for a cell's absolute day index (days since 1970, local).
+    func date(forDay day: Int) -> Date {
+        Date(timeIntervalSince1970: TimeInterval(day) * 86400
+             - TimeInterval(TimeZone.current.secondsFromGMT()))
+    }
+}

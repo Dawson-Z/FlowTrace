@@ -62,6 +62,17 @@ struct HistoryView: View {
                 Text("↑ \(formatBytesCompact(bytes: summary.avgLast24hOut))")
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundColor(.secondary)
+
+                // Entry to the standalone history window (heatmap + range +
+                // interface filter). Unicode glyph per the no-SF-Symbols rule.
+                Text("⤢")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        NSApp.sendAction(#selector(AppDelegate.showHistoryWindow), to: nil, from: nil)
+                    }
+                    .help(Loc.l("Full history"))
             }
         }
         .padding(.horizontal, 14)
