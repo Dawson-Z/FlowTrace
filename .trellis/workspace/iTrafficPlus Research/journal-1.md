@@ -113,3 +113,38 @@
 ### Next Steps
 
 - 启动 09-05-process-usage-history: 分钟级预聚合管道+process_usage 表+历史窗口 Apps 标签页
+
+
+## Session 4: m14 程序用量历史(分钟预聚合) + Bytetally A 类任务补全
+<!-- trellis-session: v=2 fp=7af7eb251dceda03 -->
+
+**Date**: 2026-09-06
+**Task**: m14 程序用量历史(分钟预聚合) + Bytetally A 类任务补全
+**Branch**: `main`
+
+### Summary
+
+实现 process_usage 分钟级预聚合管道与历史窗口 App usage 标签页(四时间维度+排序+总计); 完成 Bytetally 功能覆盖检查并补建 5 个 A 类任务
+
+### Main Changes
+
+- process_usage 表 + ProcessUsageAggregator(bytes=sumBps×interval, interval 变更前 flush, 同名合并)
+- AppUsageView/ProcessUsageModel + 历史 Tab 切换(热力图|程序用量); verify_process_usage 12/12
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `fe48d87` | chore(task): archive 09-05-process-usage-history |
+
+### Testing
+
+- [OK] verify_process_usage.swift 12/12 PASS; xcodebuild BUILD SUCCEEDED
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 待做队列: quota-alerts → menubar-display-mode → upload-anomaly-alerts → data-export → process-knowledge-base
