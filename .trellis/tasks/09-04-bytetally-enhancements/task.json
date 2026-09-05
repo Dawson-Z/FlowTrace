@@ -20,7 +20,13 @@
   "subtasks": [],
   "children": [
     "09-04-history-heatmap",
-    "09-04-localization"
+    "09-04-localization",
+    "09-05-process-usage-history",
+    "09-05-quota-alerts",
+    "09-05-upload-anomaly-alerts",
+    "09-05-data-export",
+    "09-05-process-knowledge-base",
+    "09-05-menubar-display-mode"
   ],
   "parent": null,
   "relatedFiles": [],

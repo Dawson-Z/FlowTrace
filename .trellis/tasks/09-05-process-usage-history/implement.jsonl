@@ -1,0 +1,2 @@
+{"file": "AGENTS.md", "reason": "铁律:速率归一化仅一处/无第三方依赖/11.0部署"}
+{"file": ".trellis/spec/guides/swift-combine-swiftui-pitfalls.md", "reason": "@Published willSet/segmented Picker/localizedString 哨兵三类坑"}
