@@ -36,6 +36,11 @@ final class ProcessUsageAggregator {
     private var currentBucket = 0
     private var hasCurrentBucket = false
     private var accumulated: [String: Accumulated] = [:]
+    /// Pids we have already accepted a frame for. nettop reports a *newly
+    /// seen* process row as its cumulative-since-launch bytes (baseline 0),
+    /// so the first frame of every pid must be dropped or app launches
+    /// inject their lifetime traffic into the minute bucket.
+    private var seenPids: Set<Int> = []
 
     init(persistence: @escaping () -> HistoryPersistence?) {
         self.persistence = persistence
@@ -63,6 +68,13 @@ final class ProcessUsageAggregator {
             self.currentBucket = bucket
             self.hasCurrentBucket = true
             for entity in entities {
+                // Drop the first frame of every NEW pid: nettop reports it as
+                // cumulative-since-launch, not as a delta (app launches would
+                // otherwise inject their lifetime traffic into the minute).
+                guard self.seenPids.contains(entity.pid) else {
+                    self.seenPids.insert(entity.pid)
+                    continue
+                }
                 guard entity.inBytesPerSec != 0 || entity.outBytesPerSec != 0 else { continue }
                 let key = entity.name.lowercased()
                 var acc = self.accumulated[key] ?? Accumulated()
@@ -88,7 +100,13 @@ final class ProcessUsageAggregator {
     /// Caller holds `queue`.
     private func flushLocked(interval: Int) {
         guard interval > 0, !accumulated.isEmpty,
-              let persistence = persistence() else { return }
+              let persistence = persistence() else {
+            // CRITICAL: clear the accumulator even when the write is skipped —
+            // leaving it intact turned every later flush into "sum since the
+            // beginning" (the reported "results far too large" bug).
+            accumulated.removeAll()
+            return
+        }
         let rows = accumulated.map { key, acc in
             ProcessUsageFlushRow(
                 minuteBucket: currentBucket,
@@ -99,5 +117,6 @@ final class ProcessUsageAggregator {
             )
         }
         persistence.appendProcessUsage(rows)
+        accumulated.removeAll()
     }
 }

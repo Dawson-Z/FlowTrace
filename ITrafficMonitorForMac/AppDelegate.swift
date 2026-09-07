@@ -94,20 +94,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.network.startListenNetwork()
     }
 
-    // Menu-bar fitting: the hosting view is width-flexible (extra segments
-    // appear/disappear via settings), so the status item length tracks its
-    // fitting size with a sane minimum.
-    private var statusBarLength: CGFloat = 60
+    // Menu-bar width mirrors StatusBarView's column layout:
+    //   padding 6 + rate column 55 (if any rate) + totals column 34 (if any)
+    //   — never wider than the content, never clipping it.
+    private var statusBarLength: CGFloat {
+        var width: CGFloat = 6
+        let anyRate = SettingsStore.shared.showDownloadInStatusBar
+            || SettingsStore.shared.showUploadInStatusBar
+        let anyTotal = SettingsStore.shared.showTodayInMenuBar
+            || SettingsStore.shared.showMonthInMenuBar
+        if anyRate { width += 55 }
+        if anyTotal { width += 34 }
+        return max(width, 40)
+    }
+
     private var statusBarCancellables: Set<AnyCancellable> = []
 
     private func applyStatusBarFit(_ view: NSView, to button: NSStatusBarButton) {
         let thickness = NSStatusBar.system.thickness
-        view.setFrameSize(NSSize(width: 60, height: thickness))
-        let ideal = view.fittingSize
-        let width = max(40, ideal.width > 0 ? ideal.width : 60)
+        let width = statusBarLength
         view.setFrameSize(NSSize(width: width, height: thickness))
         view.frame.origin = NSPoint(x: 0, y: 0)
-        statusBarLength = width
         button.subviews.forEach { $0.removeFromSuperview() }
         button.addSubview(view)
     }

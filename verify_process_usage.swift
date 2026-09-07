@@ -66,6 +66,7 @@ final class Accumulator {
             flushed.append(FlushRow(minuteBucket: currentBucket, nameKey: key,
                                     inBytes: a.sumIn * interval, outBytes: a.sumOut * interval))
         }
+        acc.removeAll()   // mirrors the production fix: flush must reset the bucket
     }
 }
 
@@ -186,6 +187,24 @@ do {
     let b = bucket(of: at(minute: 5, second: 59), tzSeconds: TZ)
     let c = bucket(of: at(minute: 6, second: 0), tzSeconds: TZ)
     check("bucket-59s-stable", a == b && b != c, "a=\(a) b=\(b) c=\(c)")
+}
+
+// 10. REGRESSION (the "results far too large" bug): after a minute rollover,
+//     the previous minute's sums must NOT be re-flushed in later minutes.
+do {
+    let acc = Accumulator()
+    acc.feed([Entity(name: "Helper", inBps: 1000, outBps: 100)], interval: 2,
+             now: at(minute: 0), tzSeconds: TZ)                    // minute 0
+    acc.feed([Entity(name: "Safari", inBps: 500, outBps: 50)], interval: 2,
+             now: at(minute: 1), tzSeconds: TZ)                    // rollover → flush minute 0
+    acc.feed([], interval: 2, now: at(minute: 2), tzSeconds: TZ)   // rollover → flush minute 1
+
+    let helperRows = acc.flushed.filter { $0.nameKey == "helper" }
+    let safariRows = acc.flushed.filter { $0.nameKey == "safari" }
+    check("flush-resets-bucket", helperRows.count == 1
+          && helperRows[0].minuteBucket == min0 && helperRows[0].inBytes == 2000
+          && safariRows.count == 1 && safariRows[0].minuteBucket == min0 + 1,
+          "helper rows=\(helperRows) safari rows=\(safariRows) (helper must appear exactly once, in minute 0 only)")
 }
 
 print()
