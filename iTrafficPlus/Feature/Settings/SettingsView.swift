@@ -215,6 +215,20 @@ struct SettingsView: View {
 
             Spacer()
 
+            Divider()
+
+            // MARK: - Danger
+            HStack {
+                Text(Loc.l("Clear all usage data"))
+                    .font(.system(size: 12))
+                Spacer()
+                Button(Loc.l("Clear data…")) {
+                    confirmClear()
+                }
+                .buttonStyle(.bordered)
+                .foregroundColor(.red)
+            }
+
             HStack {
                 Spacer()
                 Button(Loc.l("Done")) {
@@ -224,7 +238,25 @@ struct SettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 380, height: 660)
+        .frame(width: 380)
+        // No fixed height: the window fits the content, so nothing is ever
+        // clipped and there is no dead space when the Quota section collapses.
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    /// Confirm, then wipe every history table + reset in-memory counters.
+    private func confirmClear() {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = Loc.l("Clear all usage data")
+        alert.informativeText = Loc.l("This deletes every recorded usage (totals, interface, per-app) from this Mac. This cannot be undone.")
+        alert.addButton(withTitle: Loc.l("Clear"))
+        alert.addButton(withTitle: Loc.l("Cancel"))
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return }
+        DataCleaner.clearAll {
+            Log.settings.info("user cleared all usage data")
+        }
     }
 
     /// Enabling quota alerts also asks for notification permission.

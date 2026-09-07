@@ -153,6 +153,15 @@ final class QuotaMonitor: ObservableObject {
     static func requestAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
+
+    /// Forget every fired (period, threshold) key and re-arm prevPercent, so
+    /// the Settings "Clear data" action lets thresholds notify again from a
+    /// fresh baseline.
+    func resetFiredKeys() {
+        firedKeys = []
+        prevPercent = nil
+        defaults.removeObject(forKey: Self.firedKeysDefaultsKey)
+    }
 }
 
 enum ByteFormatter {

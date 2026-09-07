@@ -69,3 +69,8 @@
 "Alerts fire once per period at 80%, 100% and your custom threshold." = "Alerts fire once per period at 80%, 100% and your custom threshold.";
 "Quota threshold reached" = "Quota threshold reached";
 "Used %1$@ of %2$@ (%3$ld%%)" = "Used %1$@ of %2$@ (%3$ld%%)";
+"Clear all usage data" = "Clear all usage data";
+"Clear data…" = "Clear data…";
+"Clear" = "Clear";
+"Cancel" = "Cancel";
+"This deletes every recorded usage (totals, interface, per-app) from this Mac. This cannot be undone." = "This deletes every recorded usage (totals, interface, per-app) from this Mac. This cannot be undone.";

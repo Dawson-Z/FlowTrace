@@ -29,4 +29,11 @@ final class InterfaceModel: ObservableObject {
             topSnapshots = dict
         }
     }
+
+    /// Reset to empty (Settings "Clear data"). The live snapshot + top lists
+    /// repopulate on the next nettop frame.
+    func reset() {
+        snapshot = .empty
+        topSnapshots = [:]
+    }
 }

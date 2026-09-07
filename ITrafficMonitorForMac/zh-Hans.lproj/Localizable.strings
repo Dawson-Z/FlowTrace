@@ -69,3 +69,8 @@
 "Alerts fire once per period at 80%, 100% and your custom threshold." = "每个周期在 80%、100% 及自定义阈值时各提醒一次。";
 "Quota threshold reached" = "流量配额提醒";
 "Used %1$@ of %2$@ (%3$ld%%)" = "已用 %1$@ / %2$@（%3$ld%%）";
+"Clear all usage data" = "清除所有使用数据";
+"Clear data…" = "清除数据…";
+"Clear" = "清除";
+"Cancel" = "取消";
+"This deletes every recorded usage (totals, interface, per-app) from this Mac. This cannot be undone." = "这将删除本机记录的所有使用数据（总量、接口、按程序）。此操作不可撤销。";

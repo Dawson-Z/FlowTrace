@@ -83,6 +83,16 @@ final class HistoryStore: ObservableObject {
         }
     }
 
+    /// Clear the in-memory ring buffer + summary. The on-disk tables are
+    /// cleared by `HistoryPersistence.clearAllTables` (called with this by
+    /// the Settings action); this only resets the live sparkline/summary
+    /// so the UI shows empty immediately.
+    func clearMemory() {
+        buffer.removeAll()
+        samples = []
+        summary = .empty
+    }
+
     /// Recompute the `summary` aggregate. Runs the two indexed SQL scans
     /// on the db queue, delivers on the main queue, and only publishes if
     /// the value actually changed — so a flat window (all frames equal)

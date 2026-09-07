@@ -28,6 +28,15 @@ final class UsageAggregator: ObservableObject {
     @Published private(set) var week = UsageBytes()
     @Published private(set) var month = UsageBytes()
 
+    /// Called by the Settings "Clear data" action to zero the in-memory
+    /// period totals (the disk tables are cleared separately).
+    func reset() {
+        today = UsageBytes()
+        week = UsageBytes()
+        month = UsageBytes()
+        lastFetchAt = Date.distantPast
+    }
+
     private let queue = DispatchQueue(label: "usage-aggregator", qos: .utility)
     private var lastFetchAt = Date.distantPast
     private let minFetchInterval: TimeInterval

@@ -222,6 +222,30 @@ final class HistoryPersistence {
         }
     }
 
+    // MARK: - Clear (user-initiated)
+
+    /// Delete every row from all three history tables (totals, interface,
+    /// process usage). Runs on the db queue, then calls back on the main
+    /// queue. Used by the Settings "Clear data" action.
+    func clearAllTables(completion: (() -> Void)? = nil) {
+        queue.async { [weak self] in
+            guard let self else { return }
+            for table in ["history", "interface_history", "process_usage"] {
+                var stmt: OpaquePointer?
+                defer { sqlite3_finalize(stmt) }
+                guard sqlite3_prepare_v2(self.db, "DELETE FROM \(table);", -1, &stmt, nil) == SQLITE_OK else {
+                    Log.persistence.error("clear \(table) failed: \(String(cString: sqlite3_errmsg(self.db)))")
+                    continue
+                }
+                sqlite3_step(stmt)
+            }
+            Log.persistence.info("cleared all history tables")
+            if let completion {
+                DispatchQueue.main.async { completion() }
+            }
+        }
+    }
+
     // MARK: - Read (synchronous, on caller)
 
     /// Read the most recent `limit` rows in chronological order. Used at

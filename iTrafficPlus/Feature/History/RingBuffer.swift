@@ -30,6 +30,14 @@ struct RingBuffer<Element> {
         if count < capacity { count += 1 }
     }
 
+    /// Drop every element (all slots nil, counts reset) so the sparkline
+    /// renders empty. Used by the Settings "Clear data" action.
+    mutating func removeAll() {
+        storage = Array(repeating: nil, count: capacity)
+        writeIndex = 0
+        count = 0
+    }
+
     /// Returns the elements in insertion order. The most recent element is
     /// the *last* one in the returned array, which is what the sparkline
     /// wants (left-to-right = old-to-new).
