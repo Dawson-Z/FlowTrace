@@ -208,3 +208,40 @@ UsageAggregator 共享用量积分器(process_usage 字节口径)+QuotaMonitor �
 ### Next Steps
 
 - 剩余队列: upload-anomaly-alerts → data-export → process-knowledge-base
+
+
+## Session 7: m15 修复统计虚大 + 菜单栏布局 + 清除数据功能
+<!-- trellis-session: v=2 fp=9566feb919f23a2d -->
+
+**Date**: 2026-09-07
+**Task**: m15 修复统计虚大 + 菜单栏布局 + 清除数据功能
+**Branch**: `main`
+
+### Summary
+
+修复程序用量虚大(累加器未清零+新进程首帧累计注入); 菜单栏改列式布局根治截断/对齐; 设置新增'清除数据'功能(清空3表+重置内存)
+
+### Main Changes
+
+- flushLocked 落盘后清空累加器; pid 级首帧丢弃(新进程首行为自启动累计值)
+- 菜单栏列式布局(固定速率列+累计列)+确定性宽度+leading 对齐+/s 单位
+- DataCleaner + 三表清空 + 五处内存重置 + 确认弹窗(三语)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `aea38e7` | iTrafficPlus 0.3.0 (m15): Clear data — wipe all history tables + reset in-memory state |
+| `f07838e` | iTrafficPlus 0.3.0 fix (m15): per-app usage was hugely inflated + always-visible status bar clipping |
+
+### Testing
+
+- [OK] verify_process_usage.swift 13/13(含新回归 flush-resets-bucket); xcodebuild BUILD SUCCEEDED
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 剩余队列: upload-anomaly-alerts → data-export → process-knowledge-base
