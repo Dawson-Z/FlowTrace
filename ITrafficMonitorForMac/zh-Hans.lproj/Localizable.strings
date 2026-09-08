@@ -74,3 +74,10 @@
 "Clear" = "清除";
 "Cancel" = "取消";
 "This deletes every recorded usage (totals, interface, per-app) from this Mac. This cannot be undone." = "这将删除本机记录的所有使用数据（总量、接口、按程序）。此操作不可撤销。";
+"Upload alerts" = "异常上传提醒";
+"Enable upload alerts" = "启用异常上传提醒";
+"Sensitivity (× baseline)" = "灵敏度（× 基线）";
+"Min rate (MB/s)" = "最低速率 (MB/s)";
+"Alerts when a program's upload exceeds its recent baseline several times in a row." = "当某程序上传连续数次明显超出其近期基线时提醒。";
+"Abnormal upload" = "异常上传";
+"%@ is uploading fast (%@/s), above its usual baseline." = "%@ 正在高速上传（%@/s），超出其常态基线。";

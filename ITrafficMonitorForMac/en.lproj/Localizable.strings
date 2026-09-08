@@ -74,3 +74,10 @@
 "Clear" = "Clear";
 "Cancel" = "Cancel";
 "This deletes every recorded usage (totals, interface, per-app) from this Mac. This cannot be undone." = "This deletes every recorded usage (totals, interface, per-app) from this Mac. This cannot be undone.";
+"Upload alerts" = "Upload alerts";
+"Enable upload alerts" = "Enable upload alerts";
+"Sensitivity (× baseline)" = "Sensitivity (× baseline)";
+"Min rate (MB/s)" = "Min rate (MB/s)";
+"Alerts when a program's upload exceeds its recent baseline several times in a row." = "Alerts when a program's upload exceeds its recent baseline several times in a row.";
+"Abnormal upload" = "Abnormal upload";
+"%@ is uploading fast (%@/s), above its usual baseline." = "%@ is uploading fast (%@/s), above its usual baseline.";

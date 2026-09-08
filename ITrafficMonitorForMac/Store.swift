@@ -45,6 +45,9 @@ enum SharedStore {
     /// `SettingsStore.quotaEnabled` is on.
     static let quotaMonitor = QuotaMonitor()
 
+    /// Abnormal-upload watcher; no-op unless `uploadAlertEnabled`.
+    static let uploadAnomalyMonitor = UploadAnomalyMonitor()
+
     /// Wire SQLite persistence into the singletons. Must be called from
     /// `applicationDidFinishLaunching` (or any point strictly before the
     /// popover is first shown). Replaces the in-memory store with one

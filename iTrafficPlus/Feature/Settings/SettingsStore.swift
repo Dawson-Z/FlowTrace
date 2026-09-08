@@ -85,6 +85,15 @@ final class SettingsStore: ObservableObject {
     /// Show this month's accumulated total in the menu bar.
     @Published var showMonthInMenuBar: Bool
 
+    // MARK: - Upload anomaly alerts
+
+    /// Master switch for abnormal-upload alerts.
+    @Published var uploadAlertEnabled: Bool
+    /// Detection multiplier relative to the rolling median (2…50).
+    @Published var uploadAlertMultiplier: Int
+    /// Absolute lower bound (MB/s) to filter idle low-traffic noise.
+    @Published var uploadAlertMinMBps: Double
+
     private enum K {
         static let launchAtLogin              = "launchAtLogin"
         static let defaultSortModeRaw         = "defaultSortModeRaw"
@@ -100,6 +109,9 @@ final class SettingsStore: ObservableObject {
         static let quotaCustomPercent         = "quotaCustomPercent"
         static let showTodayInMenuBar         = "showTodayInMenuBar"
         static let showMonthInMenuBar         = "showMonthInMenuBar"
+        static let uploadAlertEnabled         = "uploadAlertEnabled"
+        static let uploadAlertMultiplier      = "uploadAlertMultiplier"
+        static let uploadAlertMinMBps         = "uploadAlertMinMBps"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -126,6 +138,9 @@ final class SettingsStore: ObservableObject {
         self._quotaCustomPercent      = Published(initialValue: defaults.object(forKey: K.quotaCustomPercent) as? Int ?? 0)
         self._showTodayInMenuBar      = Published(initialValue: defaults.object(forKey: K.showTodayInMenuBar) as? Bool ?? false)
         self._showMonthInMenuBar      = Published(initialValue: defaults.object(forKey: K.showMonthInMenuBar) as? Bool ?? false)
+        self._uploadAlertEnabled      = Published(initialValue: defaults.object(forKey: K.uploadAlertEnabled) as? Bool ?? false)
+        self._uploadAlertMultiplier   = Published(initialValue: defaults.object(forKey: K.uploadAlertMultiplier) as? Int ?? 8)
+        self._uploadAlertMinMBps      = Published(initialValue: defaults.object(forKey: K.uploadAlertMinMBps) as? Double ?? 1.0)
 
         // Each sink starts with the just-loaded value; `.dropFirst()` skips
         // that initial replay, so only real user edits round-trip to disk.
@@ -187,6 +202,15 @@ final class SettingsStore: ObservableObject {
             .store(in: &cancellables)
         $showMonthInMenuBar.dropFirst()
             .sink { [weak self] v in self?.defaults.set(v, forKey: K.showMonthInMenuBar) }
+            .store(in: &cancellables)
+        $uploadAlertEnabled.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.uploadAlertEnabled) }
+            .store(in: &cancellables)
+        $uploadAlertMultiplier.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.uploadAlertMultiplier) }
+            .store(in: &cancellables)
+        $uploadAlertMinMBps.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.uploadAlertMinMBps) }
             .store(in: &cancellables)
     }
 }

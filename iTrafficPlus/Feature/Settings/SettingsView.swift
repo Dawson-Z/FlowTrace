@@ -170,6 +170,41 @@ struct SettingsView: View {
                     .foregroundColor(.secondary)
             }
 
+            // MARK: - Upload alerts
+            Text(Loc.l("Upload alerts"))
+                .font(.system(size: 13, weight: .semibold))
+
+            HStack {
+                Text(Loc.l("Enable upload alerts"))
+                Spacer()
+                Toggle("", isOn: uploadAlertEnabledBinding)
+                    .labelsHidden()
+            }
+
+            if settings.uploadAlertEnabled {
+                HStack {
+                    Text(Loc.l("Sensitivity (× baseline)"))
+                    Spacer()
+                    Stepper("", value: $settings.uploadAlertMultiplier, in: 2...50)
+                        .labelsHidden()
+                    Text("\(settings.uploadAlertMultiplier)×")
+                        .font(.system(size: 11, design: .monospaced))
+                        .frame(width: 42, alignment: .trailing)
+                }
+                HStack {
+                    Text(Loc.l("Min rate (MB/s)"))
+                    Spacer()
+                    Stepper("", value: $settings.uploadAlertMinMBps, in: 0.1...100, step: 0.1)
+                        .labelsHidden()
+                    Text(String(format: "%.1f", settings.uploadAlertMinMBps))
+                        .font(.system(size: 11, design: .monospaced))
+                        .frame(width: 42, alignment: .trailing)
+                }
+                Text(Loc.l("Alerts when a program's upload exceeds its recent baseline several times in a row."))
+                    .font(.system(size: 9))
+                    .foregroundColor(.secondary)
+            }
+
             Divider()
 
             // MARK: - History
@@ -266,6 +301,17 @@ struct SettingsView: View {
             set: { on in
                 settings.quotaEnabled = on
                 if on { QuotaMonitor.requestAuthorization() }
+            }
+        )
+    }
+
+    /// Enabling upload alerts also asks for notification permission.
+    private var uploadAlertEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { settings.uploadAlertEnabled },
+            set: { on in
+                settings.uploadAlertEnabled = on
+                if on { UploadAnomalyMonitor.requestAuthorization() }
             }
         )
     }

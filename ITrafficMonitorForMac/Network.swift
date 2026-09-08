@@ -160,6 +160,8 @@ class Network {
         usageAggregator.feed(entities: entities, interval: interval, now: Date())
         // Period totals for quota + menu bar (throttled internally).
         SharedStore.usageAggregator.tick()
+        // Abnormal-upload detection (no-op when disabled).
+        SharedStore.uploadAnomalyMonitor.feed(entities: entities, now: Date())
 
         DispatchQueue.main.async {
             // History is pushed *before* the per-frame observers so the sparkline

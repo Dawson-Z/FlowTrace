@@ -8,9 +8,10 @@
 import Cocoa
 import SwiftUI
 import Combine
+import UserNotifications
 
 @NSApplicationMain
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
 
     static var popover: NSPopover!
     var statusBarItem: NSStatusItem!
@@ -31,6 +32,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // ~/Library/Logs/iTrafficPlus.log. See Feature/Logging/AppLogger.swift
         // for why both sinks are needed on macOS 11+ ad-hoc-signed builds.
         Log.appDelegate.info("applicationDidFinishLaunching entered; log file=\(LogFileSink.logFileURL?.path ?? "off")")
+
+        // Menu-bar app (LSUIElement) is "active" almost all the time, and a
+        // foreground app that does not implement willPresent only receives
+        // notifications into Notification Center — no banner. Registering as
+        // the delegate and returning [.banner,.list,.sound] makes quota and
+        // abnormal-upload alerts visibly pop.
+        UNUserNotificationCenter.current().delegate = self
 
         // Wire SQLite history persistence. Order matters: this MUST run
         // before any `historyStore.append` happens, otherwise the first
@@ -154,6 +162,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 globalModel.controllerHaveBeenReleased = false
             }
         }
+    }
+
+    // MARK: - Notification delegate
+
+    /// Foreground (active) app: still present a banner + list entry + sound
+    /// so quota / abnormal-upload alerts are seen. Without this the system
+    /// silently keeps the notification in Notification Center.
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list, .sound])
     }
 
     // MARK: - Settings window
