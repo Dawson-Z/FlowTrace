@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-09-07
+- **Total Sessions**: 8
+- **Last Active**: 2026-09-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~247 | Active |
+| `journal-1.md` | ~277 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-09-08 | m16 异常上传提醒 | `d94a2ef` | `main` |
 | 7 | 2026-09-07 | m15 修复统计虚大 + 菜单栏布局 + 清除数据功能 | `aea38e7`, `f07838e` | `main` |
 | 6 | 2026-09-06 | m15 配额提醒 + 菜单栏累计显示 | `b864612` | `main` |
 | 5 | 2026-09-06 | m14 修复:程序用量列表显示重复名称(pid 缓存槽冲突) | `0faa8bf` | `main` |

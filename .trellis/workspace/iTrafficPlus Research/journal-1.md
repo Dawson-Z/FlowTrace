@@ -245,3 +245,33 @@ UsageAggregator 共享用量积分器(process_usage 字节口径)+QuotaMonitor �
 ### Next Steps
 
 - 剩余队列: upload-anomaly-alerts → data-export → process-knowledge-base
+
+
+## Session 8: m16 异常上传提醒
+<!-- trellis-session: v=2 fp=29e719f841186849 -->
+
+**Date**: 2026-09-08
+**Task**: m16 异常上传提醒
+**Branch**: `main`
+
+### Summary
+
+UploadAnomalyMonitor 滚动基线检测(中位数+3帧连续+冷启动门控+30分钟冷却), 设置UI+横幅delegate修复前台不显示问题
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d94a2ef` | chore(task): archive 09-05-upload-anomaly-alerts |
+
+### Testing
+
+- [OK] verify_upload_anomaly.swift 12/12; 用户确认通知可显示
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 剩余队列: data-export → process-knowledge-base
