@@ -1,4 +1,4 @@
-name: iTrafficPlus
+name: FlowTrace
 
 options:
   minimumXcodeGenVersion: 2.44.0
@@ -11,63 +11,96 @@ configs:
 
 settings:
   base:
-    PRODUCT_NAME: iTrafficPlus
     MACOSX_DEPLOYMENT_TARGET: "11.0"
 
 targets:
-  iTrafficPlus:
+  FlowTrace:
     type: application
     platform: macOS
     deploymentTarget: "11.0"
     sources:
-      - path: ITrafficMonitorForMac
+      - path: FlowTraceForMac
         excludes:
           - Info.plist
-          - ITrafficMonitorForMac.entitlements
+          - FlowTraceForMac.entitlements
           - Assets.xcassets
           - "Preview Content"
-          - Base.lproj
-          - en.lproj
-          - zh-Hans.lproj
-          - zh-Hant.lproj
-      - path: iTrafficPlus
-        excludes:
-          # Test target lives in a sibling directory inside this one; if we
-          # do not exclude it here, xcodegen's path-based source discovery
-          # adds the test files to the *application* target as well, which
-          # then tries to ship `import XCTest` inside a regular .app and
-          # double-emits the main target's .swiftmodule.
-          - "iTrafficPlusTests/**"
-      - path: ITrafficMonitorForMac/Assets.xcassets
+          # All .lproj folders are listed as explicit resources below.
+          - "*.lproj"
+      - path: FlowTrace
+      - path: FlowTraceForMac/Assets.xcassets
         buildPhase: resources
-      - path: ITrafficMonitorForMac/Preview Content/Preview Assets.xcassets
+      - path: FlowTraceForMac/Preview Content/Preview Assets.xcassets
         buildPhase: resources
-      - path: ITrafficMonitorForMac/Base.lproj/Main.storyboard
+      - path: FlowTraceForMac/Base.lproj/Main.storyboard
         buildPhase: resources
-      - path: ITrafficMonitorForMac/en.lproj
+      - path: FlowTraceForMac/en.lproj
         buildPhase: resources
-      - path: ITrafficMonitorForMac/zh-Hans.lproj
+      - path: FlowTraceForMac/zh-Hans.lproj
         buildPhase: resources
-      - path: ITrafficMonitorForMac/zh-Hant.lproj
+      - path: FlowTraceForMac/zh-Hant.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/es.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/pt-BR.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/fr.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/de.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/it.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/ru.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/ja.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/ko.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/vi.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/hi.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/bn.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/ur.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/pa.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/mr.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/ta.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/jv.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/ar.lproj
+        buildPhase: resources
+      - path: FlowTraceForMac/fa.lproj
         buildPhase: resources
     entitlements:
-      path: ITrafficMonitorForMac/ITrafficMonitorForMac.entitlements
+      path: FlowTraceForMac/FlowTraceForMac.entitlements
     settings:
       base:
+        PRODUCT_NAME: FlowTrace
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # Intentionally NOT setting GLOBAL_ACCENT_COLOR_NAME. When it
+        # points at the bundled AccentColor.colorset (a hardcoded
+        # #00CFFF), the asset's value becomes the AppKit control
+        # accent at launch and overrides `.tint(nil)` at the root —
+        # i.e. the "Follow system" branch could never fall back to the
+        # macOS accent. Dropping the setting lets our `accentColorTint`
+        # extension be the single source of truth.
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Automatic
         COMBINE_HIDPI_IMAGES: YES
         CURRENT_PROJECT_VERSION: 1
-        DEVELOPMENT_ASSET_PATHS: "\"ITrafficMonitorForMac/Preview Content\""
+        DEVELOPMENT_ASSET_PATHS: "\"FlowTraceForMac/Preview Content\""
         ENABLE_PREVIEWS: YES
-        INFOPLIST_FILE: ITrafficMonitorForMac/Info.plist
+        INFOPLIST_FILE: FlowTraceForMac/Info.plist
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
         MARKETING_VERSION: 0.3.0
-        PRODUCT_BUNDLE_IDENTIFIER: local.iTrafficPlus
+        PRODUCT_BUNDLE_IDENTIFIER: local.FlowTrace
         SWIFT_VERSION: 5.0
       configs:
         # Notarisation requires the hardened runtime. Release only — on Debug it
@@ -78,7 +111,7 @@ targets:
         Release:
           ENABLE_HARDENED_RUNTIME: YES
 
-  iTrafficPlusTests:
+  FlowTraceTests:
     # Pure-Swift unit tests. No UI, no AppKit, no SwiftUI — `ListViewModel.sort`
     # is value-in / value-out so the test target only needs the model layer.
     # We do *not* need access to `SharedStore` (the singleton) for the
@@ -90,22 +123,28 @@ targets:
     platform: macOS
     deploymentTarget: "11.0"
     sources:
-      - path: iTrafficPlusTests
+      - path: FlowTraceTests
     dependencies:
-      - target: iTrafficPlus
+      - target: FlowTrace
     settings:
       base:
+        # Must be set per target. When PRODUCT_NAME lived in the top-level
+        # `settings.base` it applied to *both* targets, so the test bundle
+        # produced a `FlowTrace.swiftmodule` identical to the app's and
+        # `xcodebuild test` died with "Multiple commands produce
+        # .../FlowTrace.swiftmodule/arm64-apple-macos.swiftmodule".
+        PRODUCT_NAME: FlowTraceTests
         BUNDLE_LOADER: "$(TEST_HOST)"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/iTrafficPlus.app/Contents/MacOS/iTrafficPlus"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FlowTrace.app/Contents/MacOS/FlowTrace"
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
 
 schemes:
-  iTrafficPlus:
+  FlowTrace:
     build:
       targets:
-        iTrafficPlus: all
+        FlowTrace: all
     run:
       config: Debug
     analyze:
@@ -117,4 +156,4 @@ schemes:
     test:
       config: Debug
       targets:
-        - iTrafficPlusTests
+        - FlowTraceTests

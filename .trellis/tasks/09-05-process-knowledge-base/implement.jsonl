@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/macos/index.md", "reason": "project-level conventions; location a future Knowledge module would follow"}
+{"file": ".trellis/spec/macos/swiftui-conventions.md", "reason": "tooltip / .help pattern the implementation would attach to ProcessRow"}
+{"file": ".trellis/spec/macos/localization.md", "reason": "Loc.l usage for the three-language description fields"}
+{"file": "AGENTS.md", "reason": "the no-network-requests rule that drove the descoping decision"}

@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/macos/index.md", "reason": "project-level conventions"}
+{"file": ".trellis/spec/macos/localization.md", "reason": "Loc.l, three-language field access"}
+{"file": "AGENTS.md", "reason": "verifying the no-network-requests rule is honored by any future implementation"}

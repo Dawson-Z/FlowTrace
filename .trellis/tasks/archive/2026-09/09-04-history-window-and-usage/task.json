@@ -1,0 +1,33 @@
+{
+  "id": "history-window-and-usage",
+  "name": "09-04-history-window-and-usage",
+  "title": "History window and usage features",
+  "description": "Six history-window and usage-direction enhancements: full heatmap, data export, menu-bar segments, quota alerts, abnormal upload alerts, interface category filter. Retrospective PRD filled in for the five that shipped (the sixth, process knowledge base, was descoped).",
+  "status": "completed",
+  "dev_type": "feature",
+  "scope": "history-window+usage+interface",
+  "package": null,
+  "priority": "P1",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
+  "createdAt": "2026-09-04",
+  "completedAt": "2026-09-21",
+  "branch": null,
+  "base_branch": null,
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    ".trellis/spec/macos/",
+    "FlowTrace/Feature/History/",
+    "FlowTrace/Feature/Interface/",
+    "FlowTrace/Feature/Usage/",
+    "FlowTraceForMac/StatusBarView.swift",
+    "FlowTraceTests/"
+  ],
+  "notes": "Retrospectively filled (2026-09-21) from the shipped 0.3.0 codebase. The process knowledge base was descoped (see prd.md). No git branch recorded — the work predates this retroactive bookkeeping.",
+  "meta": {}
+}

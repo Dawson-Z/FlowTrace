@@ -11,7 +11,7 @@
 - [ ] `appendProcessUsage(rows: [(minuteBucket, name, nameKey, inBytes, outBytes)])`（异步事务批量）。
 - [ ] `processUsage(fromBucket:toBucket:completion:)` 聚合查询（GROUP BY name_key，主队列回调）。
 
-### 2. 聚合器（`iTrafficPlus/Feature/History/ProcessUsageAggregator.swift` 新建）
+### 2. 聚合器（`FlowTrace/Feature/History/ProcessUsageAggregator.swift` 新建）
 - [ ] 私有串行队列；`feed(entities:interval:now:)` 累积 sumBps。
 - [ ] 分钟翻转 flush：`bytes = sumBps × interval`，组 rows 回调落盘。
 - [ ] `flush(using:interval:)` 供 interval 变更前强制结算。
@@ -38,7 +38,7 @@
 
 ```bash
 swift verify_process_usage.swift
-xcodegen generate && xcodebuild build -project iTrafficPlus.xcodeproj -scheme iTrafficPlus -configuration Debug
+xcodegen generate && xcodebuild build -project FlowTrace.xcodeproj -scheme FlowTrace -configuration Debug
 ```
 
 ## Review Gates

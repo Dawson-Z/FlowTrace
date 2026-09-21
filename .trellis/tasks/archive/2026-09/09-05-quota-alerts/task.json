@@ -4,12 +4,12 @@
   "title": "Data quota & threshold alerts",
   "description": "月/周/日数据配额 + 80%/100%/自定义阈值本地通知提醒; 可选按接口类别独立预算(Wi-Fi 热点场景)",
   "status": "completed",
-  "dev_type": null,
+  "dev_type": "feature",
   "scope": null,
   "package": null,
   "priority": "P2",
-  "creator": "iTrafficPlus Research",
-  "assignee": "iTrafficPlus Research",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
   "createdAt": "2026-09-05",
   "completedAt": "2026-09-06",
   "branch": "main",
@@ -19,8 +19,10 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "09-04-bytetally-enhancements",
+  "parent": "09-04-history-window-and-usage",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "drift_note": "Quota threshold notifications: design.md/implement.md describe the original design at the time of completion; the current implementation has drifted. design.md/implement.md describe the threshold rule as inline in `QuotaMonitor.check()`. The shipped implementation extracted the decision into a static pure function `QuotaMonitor.shouldFire(...)` to make the rule unit-testable without a live aggregator. Pointer: FlowTraceTests/QuotaMonitorTests.swift."
+  }
 }

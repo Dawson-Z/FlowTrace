@@ -1,0 +1,23 @@
+{"file": ".trellis/spec/macos/index.md", "reason": "project-level conventions; agents read this first"}
+{"file": ".trellis/spec/macos/persistence.md", "reason": "SQLite schema, two time bases, three prune paths"}
+{"file": ".trellis/spec/macos/swiftui-conventions.md", "reason": "views, state objects, accent scope, bridge rules"}
+{"file": ".trellis/spec/macos/combine-pitfalls.md", "reason": "@Published willSet race, sink traps, locale bridge staleness"}
+{"file": ".trellis/spec/macos/localization.md", "reason": "Loc.l, date formatter order, machine-vs-user timestamps"}
+{"file": ".trellis/spec/macos/project-layout.md", "reason": "FlowTraceForMac/ vs FlowTrace/Feature/<Name>/"}
+{"file": ".trellis/spec/guides/swift-combine-swiftui-pitfalls.md", "reason": "long-form Combine pitfalls with code examples"}
+{"file": "FlowTraceForMac/Store.swift", "reason": "SharedStore singletons; single source of cross-module state"}
+{"file": "FlowTraceForMac/StatusBarView.swift", "reason": "menu-bar D / P segments, render order, width math"}
+{"file": "FlowTrace/Feature/History/HistoryHeatmapView.swift", "reason": "dayPerRow / dayPerColumn rendering, hover footer"}
+{"file": "FlowTrace/Feature/History/HistoryHeatmapModel.swift", "reason": "range + category filter state, reload on change"}
+{"file": "FlowTrace/Feature/History/HistoryPersistence+Queries.swift", "reason": "interfaceMinuteHeatmap, summary, range queries"}
+{"file": "FlowTrace/Feature/History/CSVExporter.swift", "reason": "three CSV shapes (process / interface / alert) and the save panel"}
+{"file": "FlowTrace/Feature/Usage/QuotaMonitor.swift", "reason": "threshold crossing, dedup keys, shouldFire pure function"}
+{"file": "FlowTrace/Feature/Usage/ProcessAlertMonitor.swift", "reason": "7-day median × multiplier, dedup via unique index"}
+{"file": "FlowTrace/Feature/Interface/InterfaceMonitor.swift", "reason": "second independent nettop subprocess (socket mode)"}
+{"file": "FlowTrace/Feature/Interface/InterfaceClassifier.swift", "reason": "port / device / category mapping"}
+{"file": "FlowTrace/Feature/Interface/InterfaceModel.swift", "reason": "per-frame snapshot + todayUsage aggregation"}
+{"file": "FlowTrace/Feature/Interface/InterfaceSummaryView.swift", "reason": "popover footer with the four-bucket share bar"}
+{"file": "FlowTraceForMac/ContentView.swift", "reason": "hosts the popover's interface summary at the bottom"}
+{"file": "FlowTraceForMac/AppDelegate.swift", "reason": "launch order, popover deep sleep, settings/history window openers"}
+{"file": "changelog/0.3.0.md", "reason": "milestone-by-milestone record of what shipped"}
+{"file": "docs/ARCHITECTURE.md", "reason": "section 9 records every regression and its pinning test"}

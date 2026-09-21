@@ -5,8 +5,8 @@
 ## Ordered Checklist
 
 ### 1. 语言管理器 + 基础设施
-- [ ] 新建 `iTrafficPlus/Feature/Localization/LocalizationManager.swift`：`ObservableObject` 单例，定位 `.lproj` bundle，`Loc.l(_:)` 取词，`locale` 随 `languageOverride` 重载（缺失回退 Base/系统）。
-- [ ] 新建 `iTrafficPlus/Feature/Localization/LocalizableKey.swift`（可选）：集中 key 常量，避免魔法字符串。
+- [ ] 新建 `FlowTrace/Feature/Localization/LocalizationManager.swift`：`ObservableObject` 单例，定位 `.lproj` bundle，`Loc.l(_:)` 取词，`locale` 随 `languageOverride` 重载（缺失回退 Base/系统）。
+- [ ] 新建 `FlowTrace/Feature/Localization/LocalizableKey.swift`（可选）：集中 key 常量，避免魔法字符串。
 
 ### 2. SettingsStore 增加语言覆盖
 - [ ] `SettingsStore` 新增 `@Published var languageOverride: String?`（key `languageOverride`，init 读 defaults，sink 写回）。
@@ -14,7 +14,7 @@
 
 ### 3. 资源 + project.yml
 - [ ] `ITrafficMonitorForMac/` 下新建 `en.lproj/` `zh-Hans.lproj/` `zh-Hant.lproj/` 各一个 `Localizable.strings`（英文兜底放 en.lproj）。
-- [ ] `project.yml`：把三个 `.lproj` 加进 `iTrafficPlus` target resources；设 `CFBundleLocalizations`（en/zh-Hans/zh-Hant）。
+- [ ] `project.yml`：把三个 `.lproj` 加进 `FlowTrace` target resources；设 `CFBundleLocalizations`（en/zh-Hans/zh-Hant）。
 
 ### 4. 抽取文案
 - [ ] `ContentView`、`HistoryView`、`SettingsView`、`InterfaceSummaryView`、`StatusBarView`、`ProcessSearchBar`、`AppDelegate`（窗口标题）——所有用户可见字符串改为 `Loc.l("key")`。
@@ -33,7 +33,7 @@
 
 ```bash
 xcodegen generate
-xcodebuild build -project iTrafficPlus.xcodeproj -scheme iTrafficPlus -configuration Debug
+xcodebuild build -project FlowTrace.xcodeproj -scheme FlowTrace -configuration Debug
 ```
 
 ## Review Gates

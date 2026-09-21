@@ -4,12 +4,12 @@
   "title": "Abnormal upload alerts",
   "description": "检测某程序上传速率骤增(滑动基线)并发本地通知,防后台偷传",
   "status": "completed",
-  "dev_type": null,
+  "dev_type": "feature",
   "scope": null,
   "package": null,
   "priority": "P2",
-  "creator": "iTrafficPlus Research",
-  "assignee": "iTrafficPlus Research",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
   "createdAt": "2026-09-05",
   "completedAt": "2026-09-08",
   "branch": "main",
@@ -19,8 +19,10 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "09-04-bytetally-enhancements",
+  "parent": "09-04-history-window-and-usage",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "drift_note": "Abnormal upload / download alerts: design.md/implement.md describe the original design at the time of completion; the current implementation has drifted. design.md/implement.md describe `UploadAnomalyMonitor.swift` with a rolling-window median and a 30-minute cooldown. The shipped implementation is `ProcessAlertMonitor.swift`, which uses a **7-day daily median** (not a rolling window), applies to *both* directions, and dedups daily via a unique index in the `process_alert` table rather than a cooldown timer. Pointer: changelog/0.3.0.md."
+  }
 }

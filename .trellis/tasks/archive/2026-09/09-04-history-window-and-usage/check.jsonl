@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/macos/index.md", "reason": "project-level conventions"}
+{"file": ".trellis/spec/macos/persistence.md", "reason": "SQLite schema, two time bases, three prune paths"}
+{"file": ".trellis/spec/macos/combine-pitfalls.md", "reason": "@Published willSet race, sink traps"}
+{"file": ".trellis/spec/macos/localization.md", "reason": "Loc.l, date formatter order"}
+{"file": "FlowTraceTests/QuotaMonitorTests.swift", "reason": "18 methods pinning threshold set, limit, shouldFire, dedup, period start keys"}
+{"file": "FlowTraceTests/ProcessUsageAggregatorTests.swift", "reason": "frame → minute → flush end-to-end, seenPids, regression for sum-since-launch"}
+{"file": "FlowTraceTests/HistoryHeatmapPersistenceTests.swift", "reason": "heatmap aggregation, category filter, cross-midnight, empty range, no-category-selected"}
+{"file": "docs/ARCHITECTURE.md", "reason": "section 9 records every regression and its pinning test"}
+{"file": "AGENTS.md", "reason": "hard rules + Active experiments"}

@@ -82,4 +82,4 @@ CREATE INDEX IF NOT EXISTS idx_iface_ts_cat ON interface_history(ts, category);
 - 接口类别过滤正确；
 - range 空窗口 / 无数据 → 全背景。
 
-（单元测试文件 `HistoryHeatmapTests.swift` 同步放 `iTrafficPlusTests`，供 Xcode ⌘U 使用。）
+（单元测试文件 `HistoryHeatmapTests.swift` 同步放 `FlowTraceTests`，供 Xcode ⌘U 使用。）

@@ -26,7 +26,7 @@
   - `zh-Hans.lproj/Localizable.strings`
   - `zh-Hant.lproj/Localizable.strings`
 - `project.yml`：
-  - `iTrafficPlus` target `sources` 里把三个 `.lproj` 作为 resources 加入（`buildPhase: resources`），或依赖 XcodeGen 自动发现 `.lproj`。
+  - `FlowTrace` target `sources` 里把三个 `.lproj` 作为 resources 加入（`buildPhase: resources`），或依赖 XcodeGen 自动发现 `.lproj`。
   - 设置 `CFBundleLocalizations`（en / zh-Hans / zh-Hant）。
   - `developmentLanguage: en` 保留。
 

@@ -2,14 +2,14 @@
   "id": "history-heatmap",
   "name": "history-heatmap",
   "title": "Full history heatmap + arbitrary range",
-  "description": "在现有 SQLite 历史基础上,提供任意时间范围查询与小时×天热力图视图(对应 Bytetally Pro #5),并按接口类型过滤",
+  "description": "在现有 SQLite 历史基础上，提供任意时间范围查询与小时×天热力图视图，并按接口类型过滤",
   "status": "completed",
-  "dev_type": null,
+  "dev_type": "feature",
   "scope": null,
   "package": null,
   "priority": "P2",
-  "creator": "iTrafficPlus Research",
-  "assignee": "iTrafficPlus Research",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
   "createdAt": "2026-09-04",
   "completedAt": "2026-09-05",
   "branch": "main",
@@ -19,8 +19,10 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "09-04-bytetally-enhancements",
+  "parent": "09-04-history-window-and-usage",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "drift_note": "Heatmap history window: design.md/implement.md describe the original design at the time of completion; the current implementation has drifted. design.md/implement.md describe an early shape of the heatmap. The shipped implementation moved from a per-frame `interface_history` table to a per-minute `interface_minute` table for the grid. Pointer: changelog/0.3.0.md."
+  }
 }

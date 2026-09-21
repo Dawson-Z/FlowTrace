@@ -2,7 +2,7 @@
 
 ## Goal
 
-为 iTrafficPlus 提供**简体中文 / 英文 / 繁体中文**（zh-Hans / en / zh-Hant）界面，当前界面文案**全部硬编码英文**，需抽取为可本地化资源。
+为 FlowTrace 提供**简体中文 / 英文 / 繁体中文**（zh-Hans / en / zh-Hant）界面，当前界面文案**全部硬编码英文**，需抽取为可本地化资源。
 
 ## Background
 

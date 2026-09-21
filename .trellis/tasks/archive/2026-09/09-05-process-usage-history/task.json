@@ -2,14 +2,14 @@
   "id": "process-usage-history",
   "name": "process-usage-history",
   "title": "Per-process usage history",
-  "description": "查看所有程序在不同时间维度(今天/7天/30天/自定义)的上传/下载使用量与排名(Bytetally 核心功能): 分钟级预聚合管道 + process_usage 表 + 历史窗口 Apps 标签页",
+  "description": "查看所有程序在不同时间维度（今天/7天/30天/自定义）的上传/下载使用量与排名：分钟级预聚合管道 + process_usage 表 + 历史窗口 Apps 标签页",
   "status": "completed",
-  "dev_type": null,
+  "dev_type": "feature",
   "scope": null,
   "package": null,
   "priority": "P2",
-  "creator": "iTrafficPlus Research",
-  "assignee": "iTrafficPlus Research",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
   "createdAt": "2026-09-05",
   "completedAt": "2026-09-06",
   "branch": "main",
@@ -19,8 +19,10 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "09-04-bytetally-enhancements",
+  "parent": "09-04-history-window-and-usage",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "drift_note": "Per-process usage history: design.md/implement.md describe the original design at the time of completion; the current implementation has drifted. design.md/implement.md match the shipped behaviour. Note that `ProcessUsageAggregator.flush(using:)` was later removed because the sample interval is now fixed at 1 s; the regression test `ProcessUsageAggregatorTests.testFlushResetsBucket` pins the current implementation. Pointer: FlowTraceTests/ProcessUsageAggregatorTests.swift."
+  }
 }

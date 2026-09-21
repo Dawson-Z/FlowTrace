@@ -1,6 +1,6 @@
 # Swift / Combine / SwiftUI Pitfalls (macOS)
 
-> Earned from iTrafficPlus 0.3.0 localization work (2026-09-04). Three bugs,
+> Earned from FlowTrace 0.3.0 localization work (2026-09-04). Three bugs,
 > one root theme: **SwiftUI/Combine update timing is not intuitive — never
 > assume a value is "already there" when an event fires.**
 
@@ -34,6 +34,28 @@ parameter.
 
 **Rule**: In any `$prop` sink, the event parameter IS the new value. Never
 re-read the property inside the sink.
+
+**Corollary — don't do AppKit window work synchronously inside the sink.**
+A settings pane change resized the window from a `$tab` sink: the window
+resized but the pane never changed, because the sink runs before the write and
+the synchronous `setFrame` re-enters AppKit while SwiftUI is mid-update. Defer
+it one turn:
+
+```swift
+selection.$tab
+    .sink { tab in DispatchQueue.main.async { applyPaneSize(for: tab) } }
+```
+
+---
+
+## 1b. Never subclass `NumberFormatter` for a SwiftUI `TextField`
+
+`TextField(value:formatter:)` **copies** the formatter internally. For a
+subclass, `NSNumberFormatter.copy(with:)` re-enters `init()` through
+Objective-C, which bypasses Swift's stored-property initialisation — the app
+died with `EXC_BREAKPOINT` (Trace/BPT trap) the moment a pane containing such a
+field was selected. Use a stock `NumberFormatter` and put range logic in the
+view (`onChange`), or parse in `onCommit`.
 
 ---
 
@@ -96,7 +118,31 @@ input itself.
 
 ---
 
-## 4. Checklist before shipping a Combine-driven setting
+## 4. A delegate callback is not proof the hook runs (AppKit bridging)
+
+**Symptom**: a custom `NSTextField` tinted its text selection by writing
+`selectedTextAttributes` from `controlTextDidBeginEditing`. Every test passed
+and the docs said "verified" — but users kept reporting the selection stayed
+system-coloured.
+
+**Cause**: `controlTextDidBeginEditing` is **not called when the user clicks
+into the field**. The verification paths (`makeFirstResponder` + `selectText`,
+or a programmatic `insertText`) either called it or created no editing session
+at all, so the tests never exercised the real path.
+
+**Fix**: hook the notifications the field editor posts itself —
+`NSText.didBeginEditingNotification` / `NSTextView.didChangeSelectionNotification`
+— and filter by ownership (`(editor.delegate as? NSTextField) === ourField`).
+
+**Rule**: before claiming a UI hook works, drive the path the user actually
+takes (a posted `NSEvent` through `NSApp.postEvent` gets close enough), and
+prefer the notifications an object posts over the delegate callbacks it may or
+may not forward. This is the same family as pitfalls 1–2: *do not assume the
+callback you registered is the one that runs.*
+
+---
+
+## 5. Checklist before shipping a Combine-driven setting
 
 - [ ] Sink uses the event parameter, not a property re-read
 - [ ] Segmented pickers: labels rebuild on locale change (`.id(locale)`)

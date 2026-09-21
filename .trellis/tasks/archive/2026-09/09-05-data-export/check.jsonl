@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/macos/index.md", "reason": "project-level conventions"}
+{"file": ".trellis/spec/macos/persistence.md", "reason": "SQLite schema, two time bases"}
+{"file": "FlowTrace/Feature/History/CSVExporter.swift", "reason": "RFC 4180 escaping, timeFormatter stability, three shapes"}
+{"file": "docs/ARCHITECTURE.md", "reason": "section 9.5 records the localization timestamp policy"}

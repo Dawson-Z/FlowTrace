@@ -4,12 +4,12 @@
   "title": "Menu bar display mode",
   "description": "菜单栏显示模式切换:实时速率/今日累计/本月累计(依赖 quota)",
   "status": "completed",
-  "dev_type": null,
+  "dev_type": "feature",
   "scope": null,
   "package": null,
   "priority": "P2",
-  "creator": "iTrafficPlus Research",
-  "assignee": "iTrafficPlus Research",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
   "createdAt": "2026-09-05",
   "completedAt": "2026-09-06",
   "branch": null,
@@ -19,8 +19,10 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "09-04-bytetally-enhancements",
+  "parent": "09-04-history-window-and-usage",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "drift_note": "Menu-bar D / P segments: design.md/implement.md describe the original design at the time of completion; the current implementation has drifted. design.md/implement.md describe the segments as additive to a fixed-width status item. The shipped implementation computes the item width from the settings flags every time they change (`AppDelegate.statusBarLength`), so toggling segments in Settings resizes the menu-bar item live. Pointer: docs/ARCHITECTURE.md."
+  }
 }

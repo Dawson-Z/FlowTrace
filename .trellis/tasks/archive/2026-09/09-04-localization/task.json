@@ -2,14 +2,14 @@
   "id": "localization",
   "name": "localization",
   "title": "Multi-language localization",
-  "description": "iTrafficPlus 多语支持:简体中文/英文/繁体中文(zh-Hans/en/zh-Hant)。抽取硬编码文案到 Localizable.strings,加载对应 .lproj 资源",
+  "description": "FlowTrace 多语支持:简体中文/英文/繁体中文(zh-Hans/en/zh-Hant)。抽取硬编码文案到 Localizable.strings,加载对应 .lproj 资源",
   "status": "completed",
-  "dev_type": null,
+  "dev_type": "feature",
   "scope": null,
   "package": null,
   "priority": "P2",
-  "creator": "iTrafficPlus Research",
-  "assignee": "iTrafficPlus Research",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
   "createdAt": "2026-09-04",
   "completedAt": "2026-09-04",
   "branch": "main",
@@ -19,8 +19,10 @@
   "pr_url": null,
   "subtasks": [],
   "children": [],
-  "parent": "09-04-bytetally-enhancements",
+  "parent": "09-04-history-window-and-usage",
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "drift_note": "Runtime language selector: design.md/implement.md describe the original design at the time of completion; the current implementation has drifted. design.md/implement.md predate two late-cycle fixes: the bundle lookup must check both `path(forResource:ofType:)` and `resourceURL` to avoid falling back to the system language, and `setLocalizedDateFormatFromTemplate` must be called *after* `formatter.locale`. Pointer: docs/ARCHITECTURE.md."
+  }
 }

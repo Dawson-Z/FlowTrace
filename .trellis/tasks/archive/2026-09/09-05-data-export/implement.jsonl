@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/macos/index.md", "reason": "project-level conventions"}
+{"file": ".trellis/spec/macos/persistence.md", "reason": "SQLite schema, two time bases, three prune paths"}
+{"file": ".trellis/spec/macos/localization.md", "reason": "Loc.l, date formatter order, machine-vs-user timestamps"}
+{"file": "FlowTrace/Feature/History/CSVExporter.swift", "reason": "the three CSV shapes and the save panel"}
+{"file": "FlowTrace/Feature/History/HistoryHeatmapModel.swift", "reason": "interface CSV export call site"}
+{"file": "FlowTrace/Feature/History/ProcessUsageModel.swift", "reason": "process CSV export call site"}
+{"file": "FlowTrace/Feature/History/AlertLogView.swift", "reason": "alert CSV export call site (model is a @StateObject inside the view)"}
+{"file": "FlowTrace/Feature/History/HistoryPersistence+Queries.swift", "reason": "exportInterfaceMinute, exportProcessUsage queries"}
+{"file": "docs/ARCHITECTURE.md", "reason": "section 9.5 records the localization work that reshaped machine vs user timestamps"}

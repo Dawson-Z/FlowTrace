@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/macos/index.md", "reason": "top-level entry point for macOS conventions"}
+{"file": ".trellis/spec/macos/persistence.md", "reason": "SQLite schema, two time bases, three prune paths"}
+{"file": ".trellis/spec/macos/combine-pitfalls.md", "reason": "the 6 Combine/sink/bridged-control traps hit in this codebase"}
+{"file": ".trellis/spec/macos/localization.md", "reason": "Loc.l, date formatter order, supported locales"}
+{"file": ".trellis/spec/macos/persistence.md", "reason": "HistoryPersistence schema, two time bases, retention"}
+{"file": ".trellis/spec/guides/swift-combine-swiftui-pitfalls.md", "reason": "long-form Combine pitfalls"}
+{"file": ".trellis/agents/check.md", "reason": "what to self-fix vs. defer, macOS false-positive list"}
+{"file": "AGENTS.md", "reason": "hard rules + Active experiments (final arbiter)"}
+{"file": ".trellis/tasks/00-bootstrap-guidelines/status-note.md", "reason": "shows where the bootstrap spec was filled"}

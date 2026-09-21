@@ -1,0 +1,32 @@
+{
+  "id": "data-export",
+  "name": "09-05-data-export",
+  "title": "CSV/JSON data export",
+  "description": "Export the history window's three dimensions to CSV (one shape per tab). JSON was descoped — no consumer in the app. Streaming read was not shipped; 30-day exports fit in memory.",
+  "status": "completed",
+  "dev_type": "feature",
+  "scope": "history-window",
+  "package": null,
+  "priority": "P1",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
+  "createdAt": "2026-09-04",
+  "completedAt": "2026-09-21",
+  "branch": null,
+  "base_branch": null,
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "09-04-history-window-and-usage",
+  "relatedFiles": [
+    "FlowTrace/Feature/History/CSVExporter.swift",
+    "FlowTrace/Feature/History/HistoryHeatmapModel.swift",
+    "FlowTrace/Feature/History/ProcessUsageModel.swift",
+    "FlowTrace/Feature/History/AlertLogModel.swift",
+    "FlowTrace/Feature/History/HistoryPersistence+Queries.swift"
+  ],
+  "notes": "Retrospectively filled (2026-09-21). The CSV shape shipped with the heatmap milestone (#13), the app-usage milestone (#14), and the alert log tab. JSON was intentionally not added — see design.md. No git branch recorded; the work predates this retroactive bookkeeping.",
+  "meta": {}
+}

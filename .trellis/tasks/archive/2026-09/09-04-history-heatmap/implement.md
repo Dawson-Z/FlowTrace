@@ -4,7 +4,7 @@
 
 ## Ordered Checklist
 
-### 1. 数据层（`iTrafficPlus/Feature/History/HistoryPersistence.swift`）
+### 1. 数据层（`FlowTrace/Feature/History/HistoryPersistence.swift`）
 - [ ] 新增 `interface_history` 表 + `idx_iface_ts_cat`（`createSchemaIfNeeded` 内）。
 - [ ] `prune()` 同时清理 `interface_history` 超期行。
 - [ ] 新增 `struct InterfaceHistoryRow { ts, category, inBps, outBps }`。
@@ -20,17 +20,17 @@
 - [ ] `makeInterfaceMonitor().onAggregate` 内：按 `interval` 归一化 `bytesIn/Out` → 组装 `InterfaceHistoryRow` → `historyPersistence.appendInterface(rows)`。
 - [ ] 确认**不**在下游重复除以 interval。
 
-### 4. 热力图模型（`iTrafficPlus/Feature/History/HistoryHeatmapModel.swift` 新建）
+### 4. 热力图模型（`FlowTrace/Feature/History/HistoryHeatmapModel.swift` 新建）
 - [ ] `ObservableObject`：`@Published range`、`@Published selectedCategories`、`@Published cells`。
 - [ ] `reload()`：调 `historyPersistence` 聚合，主队列回填 `cells`。
 - [ ] 参数切换触发 `reload()`。
 
-### 5. 热力图视图（`iTrafficPlus/Feature/History/HistoryHeatmapView.swift` 新建）
+### 5. 热力图视图（`FlowTrace/Feature/History/HistoryHeatmapView.swift` 新建）
 - [ ] `HistoryHeatmap`：`ScrollView` + 手绘 `Rectangle` 网格，支持**两种方向**（行=天/列=24h；列=天/行=24h），由同一个 `cells` 渲染，方向可切换。
 - [ ] `onHover` 显示该时段 `↓/↑` 值。
 - [ ] 无数据单元格 = 背景色。
 
-### 6. 历史窗口（`iTrafficPlus/Feature/History/HistoryWindowView.swift` 新建）
+### 6. 历史窗口（`FlowTrace/Feature/History/HistoryWindowView.swift` 新建）
 - [ ] 顶部时间范围 `Picker`（today/7d/30d）+ 自定义 `DatePicker`（展示切换）。
 - [ ] 接口类别 `Toggle` 组（方式 B：4 类复选框，勾选组合累加，全选默认，全选 = 总量）。
 - [ ] 方向切换 `Picker`（行=天/列=24h ↔ 列=天/行=24h）。
@@ -42,7 +42,7 @@
 
 ### 8. 验证
 - [ ] 新建 `verify_history.swift`（standalone，镜像归一化+桶聚合+接口过滤），运行全 PASS。
-- [ ] 新建 `iTrafficPlusTests/HistoryHeatmapTests.swift`（供 Xcode ⌘U）。
+- [ ] 新建 `FlowTraceTests/HistoryHeatmapTests.swift`（供 Xcode ⌘U）。
 - [ ] `xcodegen generate && xcodebuild build` 编译通过（在正常终端）。
 - [ ] 运行 app：观察 `interface_history` 累积、历史窗口打开、热力图着色、接口过滤、范围切换。
 
@@ -51,7 +51,7 @@
 ```bash
 swift verify_history.swift          # 归一化/桶聚合/过滤 全部 PASS
 xcodegen generate                   # 正常终端执行
-xcodebuild build -project iTrafficPlus.xcodeproj -scheme iTrafficPlus -configuration Debug
+xcodebuild build -project FlowTrace.xcodeproj -scheme FlowTrace -configuration Debug
 ```
 
 ## Review Gates
