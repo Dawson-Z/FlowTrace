@@ -14,7 +14,7 @@ FlowTrace 是 [iTraffic](https://github.com/foamzou/ITraffic-monitor-for-mac) �
 
 </div>
 
-**[下载最新发布版](https://github.com/OWNER/FlowTrace/releases)** —— `.dmg`（拖进 Applications 即装完）或 `.zip`。想自己编译的话见[从源码构建](#从源码构建)。
+**[下载最新发布版](https://github.com/Dawson-Z/FlowTrace/releases)** —— `.dmg`（拖进 Applications 即装完）或 `.zip`。想自己编译的话见[从源码构建](#从源码构建)。
 
 发布包用自签名证书签名（**当前签名身份是 `Dawson`**）、**未经公证**，所以 macOS 首次会拦下它。[首次启动](#首次启动) 写了放行步骤。所有功能都在用户态完成；没有 System Extension，没有 NetworkExtension，没有额外的 entitlements。
 
@@ -41,7 +41,7 @@ FlowTrace 是 [iTraffic](https://github.com/foamzou/ITraffic-monitor-for-mac) �
 
 ## 安装
 
-从 [Releases 页](https://github.com/OWNER/FlowTrace/releases) 下载 `FlowTrace-<版本>.dmg` 或
+从 [Releases 页](https://github.com/Dawson-Z/FlowTrace/releases) 下载 `FlowTrace-<版本>.dmg` 或
 `FlowTrace-<版本>.zip`。`.dmg` 里是 app 加一个指向 `/Applications` 的替身，拖进去就装完了；
 `.zip` 是同一个 bundle 去掉磁盘映像，给脚本用。
 

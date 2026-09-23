@@ -10,7 +10,7 @@ FlowTrace is a fork of [iTraffic](https://github.com/foamzou/ITraffic-monitor-fo
 
 </div>
 
-**[Download the latest release](https://github.com/OWNER/FlowTrace/releases)** — a `.dmg` (drag to Applications) or a `.zip`. Prefer to build it yourself? See [Building from source](#building-from-source).
+**[Download the latest release](https://github.com/Dawson-Z/FlowTrace/releases)** — a `.dmg` (drag to Applications) or a `.zip`. Prefer to build it yourself? See [Building from source](#building-from-source).
 
 The builds are signed with a self-signed certificate (the current signing identity is **`Dawson`**) and are **not notarised**, which means macOS will block the first launch until you allow it. [First launch](#first-launch) has the two-step. Everything works in user space: no System Extension, no NetworkExtension, no extra entitlements.
 
@@ -42,7 +42,7 @@ As of 1.0.0 the fork adds, on top of the upstream:
 
 ## Install
 
-Download `FlowTrace-<version>.dmg` or `FlowTrace-<version>.zip` from the [Releases page](https://github.com/OWNER/FlowTrace/releases). The `.dmg` holds the app plus an alias to `/Applications`, so installing is drag-and-drop; the `.zip` is the same bundle without the disk image, for scripting.
+Download `FlowTrace-<version>.dmg` or `FlowTrace-<version>.zip` from the [Releases page](https://github.com/Dawson-Z/FlowTrace/releases). The `.dmg` holds the app plus an alias to `/Applications`, so installing is drag-and-drop; the `.zip` is the same bundle without the disk image, for scripting.
 
 ### First launch
 
