@@ -12,6 +12,7 @@ import SwiftUI
 struct SettingsQuotaPane: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject private var l10n = LocalizationManager.shared
+    @StateObject private var permission = NotificationPermissionModel()
 
     var body: some View {
         SettingsPane {
@@ -20,6 +21,8 @@ struct SettingsQuotaPane: View {
             }
 
             if settings.quotaEnabled {
+                NotificationPermissionWarning(model: permission)
+
                 SettingsRow(label: "Period") {
                     AccentPicker(
                         options: [("Month", "month"), ("Week", "week"), ("Day", "day")]
@@ -44,6 +47,11 @@ struct SettingsQuotaPane: View {
                 SettingsNote(text: "Alerts fire once per period at 80%, 100% and your custom threshold.")
             }
         }
+        // Panes are rebuilt on every tab switch, so appear is the reliable
+        // hook: read the current authorization so the warning reflects reality
+        // (covers "the toggle has been on since an earlier run" — exactly the
+        // state that used to be invisible).
+        .onAppear { permission.refresh() }
     }
 
     /// Enabling quota alerts also asks for notification permission.
@@ -52,7 +60,7 @@ struct SettingsQuotaPane: View {
             get: { settings.quotaEnabled },
             set: { on in
                 settings.quotaEnabled = on
-                if on { QuotaMonitor.requestAuthorization() }
+                if on { permission.request() }
             }
         )
     }

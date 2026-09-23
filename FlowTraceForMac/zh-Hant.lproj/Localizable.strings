@@ -134,3 +134,10 @@
 "About statistics" = "統計方式：選單列與彈出視窗內的速率及今日/週期累計按每秒取樣即時累加，週期累計的週期跟隨「配額」頁的日/週/月設定；歷史統計視窗（進程統計、網路熱力圖、示警紀錄）按分鐘粒度落庫，約有一分鐘延遲。";
 "About privacy" = "隱私：所有資料僅儲存在本機（SQLite），應用自身不發起任何網路請求，不上傳任何資料。";
 "About tech note" = "技術說明：流量數據來自系統 nettop 介面（核心計數器），與活動監視器同源；本機 SQLite 儲存，零第三方依賴；介面內建簡體中文、繁體中文、English、日本語、Español 等多語言（可在「一般」頁切換）；外觀支援跟隨系統/淺色/深色。";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "系統設定中已關閉 FlowTrace 的通知，提醒將無法送達。";
+"Open System Settings" = "打開系統設定";
+"Notification permission has not been granted yet." = "尚未授予通知權限。";
+"Allow Notifications" = "允許通知";
+"Notifications are turned off" = "通知已關閉";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "配額提醒、異常流量示警與保留期到期提醒將無法送達。請在系統設定中允許 FlowTrace 傳送通知。";
+"Don't remind me again" = "不再提醒";

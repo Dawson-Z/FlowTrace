@@ -133,3 +133,10 @@
 "About statistics" = "Come funzionano le statistiche: le velocità nella barra dei menu e nel popover e i totali di oggi e del periodo vengono campionati ogni secondo e sommati in tempo reale — il periodo segue l'impostazione Quota (giorno / settimana / mese); la finestra cronologia (statistiche processi, mappa termica, registro avvisi) viene salvata al minuto con un ritardo di circa un minuto.";
 "About privacy" = "Privacy: tutti i dati restano su questo Mac in un database SQLite locale. L'app non effettua richieste di rete e non carica nulla.";
 "About tech note" = "Note tecniche: i dati sul traffico provengono dall'interfaccia nettop di sistema (contatori del kernel, stessa fonte di Monitoraggio Attività); archiviazione SQLite locale, nessuna dipendenza di terze parti; cinese semplificato, cinese tradizionale, inglese e altre lingue disponibili; aspetto come il sistema, chiaro o scuro.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "Le notifiche sono disattivate in Impostazioni Sistema; gli avvisi non potranno essere consegnati.";
+"Open System Settings" = "Apri Impostazioni Sistema";
+"Notification permission has not been granted yet." = "L'autorizzazione alle notifiche non è stata ancora concessa.";
+"Allow Notifications" = "Consenti notifiche";
+"Notifications are turned off" = "Le notifiche sono disattivate";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "Avvisi quota, avvisi di traffico e promemoria di conservazione non potranno essere consegnati. Attiva le notifiche per FlowTrace in Impostazioni Sistema.";
+"Don't remind me again" = "Non ricordarmelo più";

@@ -14,10 +14,15 @@ import AppKit
 struct SettingsStoragePane: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject private var l10n = LocalizationManager.shared
+    @StateObject private var permission = NotificationPermissionModel()
 
     /// Bounds for the manual "clear range" date pickers.
     @State private var clearFrom: Date = Calendar.current.startOfDay(for: Date())
     @State private var clearTo: Date = Calendar.current.startOfDay(for: Date())
+
+    private var currentCleanupMode: CleanupMode {
+        CleanupMode(rawValue: settings.cleanupModeRaw) ?? .manualNotification
+    }
 
     var body: some View {
         SettingsPane {
@@ -28,6 +33,13 @@ struct SettingsStoragePane: View {
                     },
                     selection: cleanupModeBinding
                 )
+            }
+
+            // Reminder mode delivers the retention reminder as a local
+            // notification, so the same permission warning the Quota and
+            // Alerts panes show applies here too.
+            if currentCleanupMode == .manualNotification {
+                NotificationPermissionWarning(model: permission)
             }
 
             SettingsRow(label: "Retention (days)") {
@@ -76,6 +88,9 @@ struct SettingsStoragePane: View {
                 .buttonStyle(.bordered)
             }
         }
+        // Panes are rebuilt on every tab switch, so appear is the reliable
+        // hook (same as the Quota / Alerts panes).
+        .onAppear { permission.refresh() }
     }
 
     /// Cleanup-mode picker binding. Selecting manual mode also asks for
@@ -83,11 +98,11 @@ struct SettingsStoragePane: View {
     /// notifications.
     private var cleanupModeBinding: Binding<CleanupMode> {
         Binding(
-            get: { CleanupMode(rawValue: settings.cleanupModeRaw) ?? .manualNotification },
+            get: { currentCleanupMode },
             set: { mode in
                 settings.cleanupModeRaw = mode.rawValue
                 if mode == .manualNotification {
-                    DataRetentionController.requestAuthorization()
+                    permission.request()
                 }
             }
         )

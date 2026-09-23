@@ -134,3 +134,10 @@
 "About statistics" = "统计方式：菜单栏与弹窗内的速率及今日/周期累计按每秒采样实时累加，周期累计的周期跟随「配额」页的日/周/月设置；历史统计窗口（进程统计、网络热力图、示警记录）按分钟粒度落库，约有一分钟延迟。";
 "About privacy" = "隐私：所有数据仅保存在本机（SQLite），应用自身不发起任何网络请求，不上传任何数据。";
 "About tech note" = "技术说明：流量数据来自系统 nettop 接口（内核计数器），与活动监视器同源；本地 SQLite 存储，零第三方依赖；界面内置简体中文、繁體中文、English、日本語、Español 等多语言（可在「通用」页切换）；外观支持跟随系统/浅色/深色。";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "系统设置中已关闭 FlowTrace 的通知，提醒将无法送达。";
+"Open System Settings" = "打开系统设置";
+"Notification permission has not been granted yet." = "尚未授予通知权限。";
+"Allow Notifications" = "允许通知";
+"Notifications are turned off" = "通知已关闭";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "配额提醒、异常流量示警与保留期到期提醒将无法送达。请在系统设置中允许 FlowTrace 发送通知。";
+"Don't remind me again" = "不再提醒";

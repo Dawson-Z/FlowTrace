@@ -133,3 +133,10 @@
 "About statistics" = "통계 방식: 메뉴 막대와 팝오버의 속도 및 오늘/기간 합계는 매 초 샘플링하여 실시간으로 합산합니다(기간은 쿼터 설정의 일/주/월을 따릅니다). 기록 창(프로세스 통계·히트맵·알림 로그)은 1분 단위로 저장되며 약 1분 지연됩니다.";
 "About privacy" = "개인정보: 모든 데이터는 이 Mac의 로컬 SQLite 데이터베이스에 저장됩니다. 앱 자체는 네트워크 요청을 하지 않고 아무것도 전송하지 않습니다.";
 "About tech note" = "기술 참고: 트래픽 수치는 시스템 nettop 인터페이스(커널 카운터, 활성 모니터와 같은 소스)에서 가져옵니다. 로컬 SQLite 저장, 타사 의존성 없음. 중국어 간체·번체, 영어 등 다국어 지원. 외관은 시스템 따르기/라이트/다크 중 선택할 수 있습니다.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "시스템 설정에서 알림이 꺼져 있어 경고를 전달할 수 없습니다.";
+"Open System Settings" = "시스템 설정 열기";
+"Notification permission has not been granted yet." = "알림 권한이 아직 허용되지 않았습니다.";
+"Allow Notifications" = "알림 허용";
+"Notifications are turned off" = "알림이 꺼져 있습니다";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "쿼터 알림, 트래픽 경고, 보존 기간 알림을 전달할 수 없습니다. 시스템 설정에서 FlowTrace 알림을 허용하세요.";
+"Don't remind me again" = "다시 알리지 않기";

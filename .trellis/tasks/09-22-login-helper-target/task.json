@@ -1,0 +1,29 @@
+{
+  "id": "login-helper-target",
+  "name": "login-helper-target",
+  "title": "macOS 11–12 launch-at-login helper target",
+  "description": "Parked, not started. macOS 11–12 launch-at-login currently ships as a launchd user agent at ~/Library/LaunchAgents/local.FlowTrace.login.plist (see FlowTrace/Feature/Settings/LaunchAtLoginManager.swift). The Apple-sanctioned pre-13 alternative is a helper .app embedded in Contents/Library/LoginItems/ and registered with SMLoginItemSetEnabled. It was deliberately not built: it needs a new Xcode target, an embed copy-files phase, nested-bundle signing, and a stable code-signing identity — none of which could be build-verified in the authoring sandbox. Recorded so the option is not lost. See design.md for the full spec.",
+  "status": "planning",
+  "dev_type": "feature",
+  "scope": null,
+  "package": null,
+  "priority": "P3",
+  "creator": "FlowTrace Research",
+  "assignee": "FlowTrace Research",
+  "createdAt": "2026-09-22",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "descriptor": "Deferred — see design.md",
+    "status_reason": "Needs a new Xcode target plus nested-bundle signing; neither could be build-verified when the LaunchAgent path was chosen."
+  }
+}

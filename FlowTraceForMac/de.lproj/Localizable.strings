@@ -133,3 +133,10 @@
 "About statistics" = "Wie die Statistiken funktionieren: Die Raten in Menüleiste und Popover sowie die Tages- und Periodensummen werden jede Sekunde abgetastet und laufend summiert — die Periode folgt der Kontingent-Einstellung (Tag / Woche / Monat); das Verlaufsfenster (Prozessstatistiken, Heatmap, Warnprotokoll) wird je Minute gespeichert und hinkt ca. eine Minute nach.";
 "About privacy" = "Datenschutz: Alle Daten bleiben lokal in einer SQLite-Datenbank auf diesem Mac. Die App stellt keine Netzwerkanfragen und lädt nichts hoch.";
 "About tech note" = "Technische Hinweise: Die Verkehrswerte stammen aus der nettop-Schnittstelle des Systems (Kernel-Zähler, gleiche Quelle wie die Aktivitätsanzeige); lokale SQLite-Speicherung, keine Drittanbieter-Abhängigkeiten; vereinfachtes Chinesisch, traditionelles Chinesisch, Englisch und weitere Sprachen verfügbar; Erscheinungsbild wie System, hell oder dunkel.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "Mitteilungen sind in den Systemeinstellungen deaktiviert; Warnungen können nicht zugestellt werden.";
+"Open System Settings" = "Systemeinstellungen öffnen";
+"Notification permission has not been granted yet." = "Die Mitteilungsberechtigung wurde noch nicht erteilt.";
+"Allow Notifications" = "Mitteilungen erlauben";
+"Notifications are turned off" = "Mitteilungen sind deaktiviert";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "Kontingent-Warnungen, Verkehrswarnungen und Aufbewahrungs-Erinnerungen können nicht zugestellt werden. Aktivieren Sie Mitteilungen für FlowTrace in den Systemeinstellungen.";
+"Don't remind me again" = "Nicht erneut erinnern";

@@ -99,15 +99,17 @@ targets:
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
-        MARKETING_VERSION: 0.3.0
+        MARKETING_VERSION: 1.0.0
         PRODUCT_BUNDLE_IDENTIFIER: local.FlowTrace
         SWIFT_VERSION: 5.0
       configs:
         # Notarisation requires the hardened runtime. Release only — on Debug it
         # would block the debugger unless Xcode injects get-task-allow.
-        # CODE_SIGN_IDENTITY stays ad-hoc ("-") above so a fresh `git clone` still
-        # builds; the public release pipeline is intentionally not wired up here
-        # (this is a local research fork, not a redistributable product).
+        # CODE_SIGN_IDENTITY stays ad-hoc ("-") above so a fresh clone builds
+        # without a certificate. Release builds override the identity on the
+        # command line instead, and the packaging / notarisation steps are run
+        # by hand — see AGENTS.md § Releases. Do not hard-code an identity here:
+        # it would break the build for anyone who does not have that certificate.
         Release:
           ENABLE_HARDENED_RUNTIME: YES
 

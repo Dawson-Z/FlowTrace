@@ -134,3 +134,10 @@
 "About statistics" = "How stats work: menu-bar and popover rates and the today and period totals are sampled every second and summed live — the period follows the Quota setting (day / week / month); the history window (process stats, network heatmap, alert log) is persisted per minute and lags by about a minute.";
 "About privacy" = "Privacy: all data stays on this Mac in a local SQLite database. The app itself makes no network requests and uploads nothing.";
 "About tech note" = "Technical notes: traffic figures come from the system nettop interface (kernel counters, same source as Activity Monitor); local SQLite storage, zero third-party dependencies; the interface ships in Simplified Chinese, Traditional Chinese, English, Japanese, Spanish and more (switchable in General); appearance follows system, light or dark.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "Notifications are disabled in System Settings. Alerts cannot be delivered.";
+"Open System Settings" = "Open System Settings";
+"Notification permission has not been granted yet." = "Notification permission has not been granted yet.";
+"Allow Notifications" = "Allow Notifications";
+"Notifications are turned off" = "Notifications are turned off";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings.";
+"Don't remind me again" = "Don't remind me again";

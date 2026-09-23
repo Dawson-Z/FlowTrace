@@ -133,3 +133,10 @@
 "About statistics" = "Cách tính thống kê: tốc độ trên thanh menu và popover cùng tổng hôm nay/kỳ được lấy mẫu mỗi giây và cộng trực tiếp — kỳ theo cài đặt Hạn mức (ngày / tuần / tháng); cửa sổ lịch sử (thống kê tiến trình, bản đồ nhiệt, nhật ký cảnh báo) được lưu theo phút, trễ khoảng một phút.";
 "About privacy" = "Quyền riêng tư: mọi dữ liệu nằm trên máy Mac này trong cơ sở dữ liệu SQLite cục bộ. Ứng dụng không gửi yêu cầu mạng và không tải lên gì.";
 "About tech note" = "Ghi chú kỹ thuật: số liệu lưu lượng lấy từ giao diện nettop của hệ thống (bộ đếm nhân, cùng nguồn với Giám sát Hoạt động); lưu SQLite cục bộ, không phụ thuộc bên thứ ba; hỗ trợ tiếng Trung giản thể, phồn thể, tiếng Anh và nhiều ngôn ngữ khác; diện mạo theo hệ thống, sáng hoặc tối.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "Thông báo đang tắt trong Cài đặt hệ thống nên cảnh báo sẽ không thể gửi tới.";
+"Open System Settings" = "Mở Cài đặt hệ thống";
+"Notification permission has not been granted yet." = "Chưa được cấp quyền gửi thông báo.";
+"Allow Notifications" = "Cho phép thông báo";
+"Notifications are turned off" = "Thông báo đang tắt";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "Cảnh báo hạn mức, cảnh báo lưu lượng và nhắc nhở dọn dữ liệu sẽ không thể gửi tới. Bật thông báo cho FlowTrace trong Cài đặt hệ thống.";
+"Don't remind me again" = "Không nhắc lại";

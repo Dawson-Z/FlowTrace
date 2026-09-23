@@ -23,17 +23,31 @@ final class QuotaMonitor: ObservableObject {
     private let settings: SettingsStore
     private let aggregator: UsageAggregator
     private let defaults: UserDefaults
+    private let deliver: NotificationDelivery
     private var cancellables: Set<AnyCancellable> = []
     private var prevPercent: Double?
+
+    /// Thresholds whose delivery was refused, keyed like `firedKeys`, so they
+    /// can be retried later without retrying (and logging) on every check.
+    /// Deliberately in-memory: after a restart we *want* an immediate retry,
+    /// which is what happens once the user fixes the permission.
+    private var retryAfter: [String: Date] = [:]
+
+    /// Backoff after a refused delivery — long enough that a denied install
+    /// does not attempt (and log) on every check, short enough that granting
+    /// the permission takes effect the same day.
+    private static let failedAttemptBackoff: TimeInterval = 15 * 60
 
     private static let firedKeysDefaultsKey = "quotaFiredKeys"
 
     init(settings: SettingsStore = .shared,
          aggregator: UsageAggregator = SharedStore.usageAggregator,
-         defaults: UserDefaults = .standard) {
+         defaults: UserDefaults = .standard,
+         deliver: @escaping NotificationDelivery = LocalNotification.deliver) {
         self.settings = settings
         self.aggregator = aggregator
         self.defaults = defaults
+        self.deliver = deliver
         self.firedKeys = Set(defaults.stringArray(forKey: Self.firedKeysDefaultsKey) ?? [])
 
         // Only observe usage while the feature is enabled; rewire on toggle.
@@ -46,6 +60,20 @@ final class QuotaMonitor: ObservableObject {
                 self.observeUsage()
             }
             .store(in: &cancellables)
+    }
+
+    /// Install the observation at launch.
+    ///
+    /// `SharedStore.quotaMonitor` is a lazily-initialised `static let`, so its
+    /// `init` — and therefore its subscription to `settings.$quotaEnabled` and
+    /// `aggregator.$today/week/month` — does not run until something touches
+    /// the instance. Nothing in the launch path used to, which meant `check()`
+    /// was never called and the quota feature never fired at all. Called from
+    /// `AppDelegate.applicationDidFinishLaunching`, next to
+    /// `ProcessAlertMonitor.bootstrap()`.
+    func bootstrap() {
+        guard settings.quotaEnabled else { return }
+        check()
     }
 
     private var usageCancellables: Set<AnyCancellable> = []
@@ -99,14 +127,28 @@ final class QuotaMonitor: ObservableObject {
         guard let prev = prevPercent else { return }  // first observation: arm only
 
         let periodKey = Self.periodStartKey(period: config.period, now: Date())
+        let now = Date()
         for threshold in config.thresholds {
             let key = "\(periodKey):\(threshold)"
             guard Self.shouldFire(prev: prev, current: current, threshold: threshold,
                                   key: key, alreadyFired: firedKeys) else { continue }
-            fire(threshold: threshold, usedBytes: Int(current / 100.0 * Double(config.limitBytes)),
-                 limitBytes: config.limitBytes)
-            firedKeys.insert(key)
-            defaults.set(Array(firedKeys).sorted(), forKey: Self.firedKeysDefaultsKey)
+            // A refused attempt is not recorded as fired, so it can be retried
+            // — but not on every check, or a denied install would attempt and
+            // log on every frame.
+            if let next = retryAfter[key], now < next { continue }
+            postNotification(threshold: threshold,
+                             usedBytes: Int(current / 100.0 * Double(config.limitBytes)),
+                             limitBytes: config.limitBytes) { [weak self] delivered in
+                guard let self else { return }
+                guard delivered else {
+                    // Leave the threshold unarmed so a later check retries it.
+                    self.retryAfter[key] = Date().addingTimeInterval(Self.failedAttemptBackoff)
+                    return
+                }
+                self.retryAfter[key] = nil
+                self.firedKeys.insert(key)
+                self.defaults.set(Array(self.firedKeys).sorted(), forKey: Self.firedKeysDefaultsKey)
+            }
         }
     }
 
@@ -140,8 +182,11 @@ final class QuotaMonitor: ObservableObject {
 
     // MARK: - Notification
 
-    private func fire(threshold: Int, usedBytes: Int, limitBytes: Int) {
-        let center = UNUserNotificationCenter.current()
+    /// Build and hand over one threshold notification. `completion` reports
+    /// whether the system actually accepted it — the caller only records the
+    /// threshold as fired when it did.
+    private func postNotification(threshold: Int, usedBytes: Int, limitBytes: Int,
+                                  completion: @escaping (Bool) -> Void) {
         let used = ByteFormatter.string(bytes: usedBytes)
         let limit = ByteFormatter.string(bytes: limitBytes)
         let content = UNMutableNotificationContent()
@@ -156,12 +201,12 @@ final class QuotaMonitor: ObservableObject {
             content: content,
             trigger: nil
         )
-        center.add(request)
-    }
-
-    /// Request notification authorization (call when the user enables quota).
-    static func requestAuthorization() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        deliver(request) { delivered in
+            Log.settings.info(
+                "quota \(threshold)% reached (\(used) of \(limit)); notification delivered=\(delivered)"
+            )
+            completion(delivered)
+        }
     }
 
     /// Forget every fired (period, threshold) key and re-arm prevPercent, so
@@ -169,6 +214,7 @@ final class QuotaMonitor: ObservableObject {
     /// fresh baseline.
     func resetFiredKeys() {
         firedKeys = []
+        retryAfter = [:]
         prevPercent = nil
         defaults.removeObject(forKey: Self.firedKeysDefaultsKey)
     }

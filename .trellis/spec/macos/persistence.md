@@ -13,8 +13,34 @@
 ## Location
 
 `<App Support>/FlowTrace/history.sqlite3` (system-managed;
-`HistoryPersistence.defaultDbURL()`). One-time rename migration
-moves the legacy `iTrafficPlus/` folder if present.
+`HistoryPersistence.defaultDbURL()`). On first launch: if the
+`FlowTrace/` subdirectory does not exist, it is created.
+
+## Backup — WAL means three files, not one
+
+`journal_mode = WAL` splits the on-disk database:
+
+| File | Holds |
+| --- | --- |
+| `history.sqlite3` | everything up to the last checkpoint |
+| `history.sqlite3-wal` | committed transactions not yet merged into the main file |
+| `history.sqlite3-shm` | shared-memory index over the WAL |
+
+The app never runs an explicit checkpoint, and the `sqlite3_close` in
+`HistoryPersistence.deinit` never fires — the owner
+(`SharedStore.historyPersistence`) is `static` storage that lives for the
+whole process, and `applicationWillTerminate` does not close the handle
+either. **`-wal` therefore normally survives quit.**
+
+This is *not* data loss: SQLite replays the WAL on the next open, and any
+reader always sees main + WAL. But it does mean:
+
+- **Any backup, move, or handoff must copy all three files.** Copying
+  `history.sqlite3` alone silently drops the most recent data.
+- **Never delete the sidecars to "tidy up"** — that discards the
+  transactions they hold.
+- Growth is bounded; SQLite checkpoints automatically at 1000 pages
+  (~4 MB). Do not add a manual checkpoint just to shrink the file.
 
 ## Threading
 

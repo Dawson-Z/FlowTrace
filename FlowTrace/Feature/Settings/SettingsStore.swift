@@ -182,27 +182,6 @@ final class SettingsStore: ObservableObject {
         static let alertMinUploadMB           = "alertMinUploadMB"
     }
 
-    /// One-time migration from the pre-rename bundle-id defaults domain.
-    /// The app shipped as "iTrafficPlus" (domain `local.iTrafficPlus`); after
-    /// the FlowTrace rename the standard domain became `local.FlowTrace` and
-    /// would start empty. If the new domain has no user keys yet and the
-    /// legacy domain does, copy every key across so settings survive the
-    /// rename. Runs before any `@Published` seeding, so the values below
-    /// read the migrated data.
-    private static func migrateLegacyDefaultsIfNeeded(into defaults: UserDefaults) {
-        let legacyDomain = "local.iTrafficPlus"
-        guard let legacy = defaults.persistentDomain(forName: legacyDomain), !legacy.isEmpty else {
-            return
-        }
-        let currentDomain = Bundle.main.bundleIdentifier ?? "local.FlowTrace"
-        let existing = defaults.persistentDomain(forName: currentDomain) ?? [:]
-        guard existing.isEmpty else { return } // already used FlowTrace — never overwrite
-        for (key, value) in legacy {
-            defaults.set(value, forKey: key)
-        }
-        Log.settings.info("[migration] copied \(legacy.count) defaults from \(legacyDomain)")
-    }
-
     /// One-time rename of persisted keys whose meaning changed.
     ///
     /// Applied only when the new key is absent, so a value the user has set
@@ -225,7 +204,6 @@ final class SettingsStore: ObservableObject {
     }
 
     init(defaults: UserDefaults = .standard) {
-        Self.migrateLegacyDefaultsIfNeeded(into: defaults)
         Self.migrateRenamedDefaultsKeysIfNeeded(into: defaults)
         self.defaults = defaults
         // Read directly into backing storage; this bypasses the @Published
@@ -234,7 +212,8 @@ final class SettingsStore: ObservableObject {
         // `launchAtLogin` is seeded from the *live* OS status (not from the
         // defaults value) because the macOS login-item state is the source of
         // truth: UserDefaults can drift when the user manages it in System
-        // Settings (macOS 13+). Unsupported OSes (11–12) seed `false`.
+        // Settings (macOS 13+), and on 11–12 the manager reads the launchd
+        // agent it owns instead.
         let launchStatus = LaunchAtLoginManager.currentStatus()
         self._launchAtLogin           = Published(initialValue: launchStatus == .enabled)
         self._defaultSortModeRaw      = Published(initialValue: defaults.string(forKey: K.defaultSortModeRaw) ?? "download")

@@ -13,7 +13,7 @@ You are the Implement Agent spawned by `trellis channel spawn --agent implement`
 ## Context
 
 This is the **FlowTrace** macOS menu-bar app, written in Swift + SwiftUI
-(deployment target 11.0). It is a private research fork of iTraffic with
+(deployment target 11.0). It is a fork of iTraffic with
 no third-party dependencies, no network calls, and an empty entitlements
 file. Treat `.trellis/spec/` as the project's style and architecture
 guide.

@@ -133,3 +133,10 @@
 "About statistics" = "統計の仕組み: メニューバーとポップオーバーの速度、本日と期間の合計は毎秒サンプリングしてリアルタイムに集計します（期間はクォータ設定の日/週/月に従います）。履歴ウィンドウ（プロセス統計・ヒートマップ・警告ログ）は1分単位で保存され、約1分の遅延があります。";
 "About privacy" = "プライバシー: すべてのデータはこの Mac 上のローカル SQLite データベースに保存されます。アプリ自体はネットワーク通信を行わず、何も送信しません。";
 "About tech note" = "技術メモ: 通信量はシステムの nettop インターフェース（カーネルカウンタ、アクティビティモニターと同じソース）から取得しています。ローカル SQLite 保存、サードパーティ依存なし。簡体字中国語・繁体字中国語・英語などの複数言語に対応。外観はシステムに従う/ライト/ダークから選択できます。";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "システム設定で通知がオフのため、アラートは届きません。";
+"Open System Settings" = "システム設定を開く";
+"Notification permission has not been granted yet." = "通知の許可がまだ得られていません。";
+"Allow Notifications" = "通知を許可";
+"Notifications are turned off" = "通知がオフです";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "クォータ警告・異常トラフィック警告・保持期間のリマインダーは届きません。システム設定で FlowTrace の通知を許可してください。";
+"Don't remind me again" = "今後表示しない";

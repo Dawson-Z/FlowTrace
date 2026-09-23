@@ -133,3 +133,10 @@
 "About statistics" = "Cara statistik makarya: laju ing bilah menu lan popover sarta total dina lan periode dicuplik saben detik lan langsung digabung — periode miturut setelan kuota (dina / minggu / wulan); jendela riwayat (statistik proses, peta panas, log elering) disimpen per menit lan telat kira-kira siji menit.";
 "About privacy" = "Privasi: kabeh data ana ing Mac iki ing basis data SQLite lokal. Aplikasi iki ora nglakoni panjaluk jaringan lan ora ngunggah apa-apa.";
 "About tech note" = "Cathetan teknis: angka lalu lintas asale saka antarmuka nettop sistem (counter kernel, sumber padha karo Activity Monitor); panyimpenan SQLite lokal, ora ana dependensi pihak katelu; basa Cina sarana, Cina adat, Inggris lan basa liyane kasedhiya; wujud nurut sistem, padhang utawa peteng.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "Pemberitahuan mati ing Setelan Sistem, mula elering ora bisa dikirim.";
+"Open System Settings" = "Bukak Setelan Sistem";
+"Notification permission has not been granted yet." = "Ijin pemberitahuan durung diwenehake.";
+"Allow Notifications" = "Izineake Pemberitahuan";
+"Notifications are turned off" = "Pemberitahuan mati";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "Elering kuota, elering lalu lintas lan pangeling ora bisa dikirim. Nguripake pemberitahuan FlowTrace ing Setelan Sistem.";
+"Don't remind me again" = "Aja ngelingi maneh";

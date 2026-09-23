@@ -71,6 +71,55 @@ struct SettingsNote: View {
     }
 }
 
+/// Inline warning for the Quota / Alerts panes: the feature's switch is on,
+/// but the system would drop its notifications anyway. Covers both missing
+/// states — `denied` (only fixable in System Settings, so the button opens
+/// that pane) and `notDetermined` (the app can still pop the request dialog
+/// itself, so the button asks). Hidden once the status is granted — and while
+/// it is still unknown (`nil`), so a freshly rebuilt pane never flashes a
+/// stale warning before the first read lands.
+struct NotificationPermissionWarning: View {
+    @ObservedObject var model: NotificationPermissionModel
+    @ObservedObject private var l10n = LocalizationManager.shared
+
+    var body: some View {
+        switch model.status {
+        case .denied:
+            warningRow(
+                text: Loc.l("Notifications are disabled in System Settings. Alerts cannot be delivered."),
+                button: Loc.l("Open System Settings")
+            ) {
+                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+        case .notDetermined:
+            warningRow(
+                text: Loc.l("Notification permission has not been granted yet."),
+                button: Loc.l("Allow Notifications")
+            ) {
+                model.request()
+            }
+        default:
+            EmptyView()
+        }
+    }
+
+    private func warningRow(text: String, button: String,
+                            action: @escaping () -> Void) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Label(text, systemImage: "exclamationmark.triangle.fill")
+                .font(.footnote)
+                .foregroundColor(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 12)
+            Button(button, action: action)
+                .buttonStyle(.link)
+                .font(.footnote)
+        }
+    }
+}
+
 /// Common pane chrome: standard padding, top-aligned, width driven by the
 /// window (so the pane stretches if the user widens it) with a minimum
 /// matching `SettingsMetrics.width`.

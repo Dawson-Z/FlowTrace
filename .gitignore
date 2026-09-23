@@ -8,6 +8,11 @@
 # development; rebuild on demand.
 build/
 
+# Release packaging output (`hdiutil` / `ditto` — see AGENTS.md § Releases).
+# Never commit a .dmg or a .zip: they are build artefacts, and a stale one in
+# the tree is worse than none.
+dist/
+
 # AI agent local state.
 # AGENTS.md and its CLAUDE.md symlink are committed on purpose — they are shared
 # instructions for anyone working here. What stays out is per-machine settings

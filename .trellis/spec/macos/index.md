@@ -76,8 +76,8 @@
 
 These are non-negotiable; they were each earned from a real bug.
 
-- **Never commit, push, or open a PR upstream.** (AGENTS.md.) This is
-  a private research fork, kept separate from
+- **Never commit, push, or open a PR upstream.** (AGENTS.md.) This is a
+  fork, kept separate from
   [foamzou/ITraffic-monitor-for-mac](https://github.com/foamzou/ITraffic-monitor-for-mac).
 - **No third-party dependencies.** `import SQLite3` is the only
   non-system dependency. If you need a JSON parser, use `Codable`.

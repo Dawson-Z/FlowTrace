@@ -18,18 +18,22 @@
 //
 //  Strategy
 //  --------
-//  We parse the *entire* hardware-ports table once, keyed by device, and
-//  classify by the "Hardware Port" string first:
+//  Two name checks run *before* the port table, because for these devices the
+//  name is authoritative and the port name is only descriptive:
+//    - `awdl0` / `llw0`   -> localDirect (peer-to-peer, never in the table)
+//    - `bridge*`          -> other  (a bridge reports e.g. "Thunderbolt
+//                                    Bridge"; letting that win would claim a
+//                                    wired identity for a hotspot/tunnel)
+//  Then the hardware-ports table, parsed once and keyed by device:
 //    - "Wi-Fi"                -> wifi
 //    - "USB" / "Ethernet" /
 //      "Thunderbolt"          -> wired  (USB tethering like iPhone's en11
 //                                         is folded into Wired by design)
-//  Then fall back to a name heuristic for devices that never show up in
-//  the table (virtual/dynamic):
-//    - `awdl0` / `llw0`   -> localDirect
+//  Then a name heuristic for devices that never show up in the table
+//  (virtual/dynamic):
 //    - numeric `en*`      -> wired  (dynamic USB/Thunderbolt NICs like
 //                                    en13, en2-en4 on this machine)
-//    - `bridge*` or unknown -> other
+//    - unknown            -> other
 //
 //  This stays a *pure* classifier over (name, portByDevice) so the
 //  interesting logic is unit-testable without process state.
@@ -103,11 +107,25 @@ struct InterfaceClassifier {
         let lower = name.lowercased()
         if lower == "awdl0" || lower == "llw0" { return .localDirect }
 
+        // `bridge*` is a bridge (hotspot / tunnel aggregation). It carries
+        // real external traffic but is not the physical NIC, so bucket it
+        // as Other rather than claiming a specific wired/wifi identity.
+        //
+        // Checked *before* the hardware-ports table on purpose: for a bridge
+        // the device name is the authoritative signal while the port name is
+        // merely descriptive — `bridge0` is reported as "Thunderbolt Bridge",
+        // and letting that descriptive name win classified every bridge
+        // (hotspot / tunnel) as Wired.
+        if lower.hasPrefix("bridge") { return .other }
+
         // Known hardware ports win over the `en*` heuristic, because on a
         // Mac the Wi-Fi NIC is itself an `en*` device (here en1).
         if let port = portByDevice[name] {
             let p = port.lowercased()
-            if p == "wifi" { return .wifi }
+            // The port is reported as "Wi-Fi"; lowercased that is "wi-fi",
+            // so comparing against a plain "wifi" never matched it and every
+            // Wi-Fi NIC fell through to Other.
+            if p.contains("wifi") || p.contains("wi-fi") { return .wifi }
             // USB / Ethernet / Thunderbolt all count as wired. (There is no
             // separate 'usb' bucket — the user chose to fold USB tethering
             // into Wired.)
@@ -119,14 +137,14 @@ struct InterfaceClassifier {
         // Everything that looks like an ethernet-family device (en*) —
         // including dynamic ones like en13 — is wired-like. (Reached only
         // when the device was not in the hardware-ports table.)
-        if lower.hasPrefix("en") && lower.dropFirst().allSatisfy({ $0.isNumber }) {
+        //
+        // `dropFirst(2)` strips the whole "en" prefix: dropping a single
+        // character left the 'n' in place, so the suffix was never all
+        // digits and this branch was unreachable.
+        let suffix = lower.dropFirst(2)
+        if lower.hasPrefix("en"), !suffix.isEmpty, suffix.allSatisfy({ $0.isNumber }) {
             return .wired
         }
-
-        // `bridge*` is a bridge (hotspot / tunnel aggregation). It carries
-        // real external traffic but is not the physical NIC, so bucket it
-        // as Other rather than claiming a specific wired/wifi identity.
-        if lower.hasPrefix("bridge") { return .other }
 
         return .other
     }

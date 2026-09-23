@@ -7,7 +7,7 @@
 ## Project under spec
 
 FlowTrace is a **macOS menu-bar app** in Swift + SwiftUI,
-deployment target **11.0**. It is a private research fork of
+deployment target **11.0**. It is a fork of
 [iTraffic](https://github.com/foamzou/ITraffic-monitor-for-mac) with
 no third-party packages, no network requests, and an empty
 entitlements file. Anything you read below must be consistent with

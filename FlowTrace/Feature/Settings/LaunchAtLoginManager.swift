@@ -2,21 +2,35 @@
 //  LaunchAtLoginManager.swift
 //  FlowTrace — Feature/Settings
 //
-//  Manages the "Launch at login" toggle. Uses SMAppService on macOS 13+
-//  (the only non-deprecated, app-store-compliant way to register a regular
-//  .app as a login item since macOS 13). On macOS 11–12 — the lower bound
-//  of FlowTrace's deployment target — there is no supported equivalent
-//  for the *main app*: the old SMLoginItemSetEnabled only registers a
-//  helper bundle, and the pre-13 LSSharedFileList path is deprecated and
-//  does not survive notarisation. So on 11–12 we report `.unsupported`
-//  rather than silently doing nothing the user cannot rely on.
+//  Manages the "Launch at login" toggle, on two foundations because the
+//  deployment floor is macOS 11 and the sanctioned API only exists from 13.
 //
-//  Why #available and not raising the deployment target: AGENTS.md's rule
-//  for this fork is "guard new API with #available rather than raising the
-//  target", because the upstream supports macOS 10.15/11 users.
+//  macOS 13+ uses `SMAppService.mainApp` — a per-app registration, queried and
+//  granted through System Settings.
+//
+//  macOS 11–12 has no equivalent for the *main app*: `SMAppService` does not
+//  exist there, `SMLoginItemSetEnabled` only registers a helper bundle living
+//  in `Contents/Library/LoginItems/` (a second target, a second bundle, a
+//  second signature), and `LSSharedFileList` is deprecated. So instead we drop
+//  a launchd *user agent* into `~/Library/LaunchAgents` whose single job is
+//  `/usr/bin/open -g` on this bundle. launchd scans that directory at every
+//  login, which means writing the plist *is* the registration and deleting it
+//  is the unregistration — no `launchctl` call to get wrong, and no
+//  UserDefaults flag to drift: the file's presence is the state.
+//
+//  The cost of that choice is the plist records an absolute path, because
+//  `open` needs something to open (`-b <bundle-id>` would instead depend on
+//  LaunchServices having indexed this bundle). A build directory that moved or
+//  was cleaned would leave launchd pointing at nothing, so `currentStatus()`
+//  rewrites the plist whenever it finds one whose recorded path is not the
+//  bundle we are running from. That keeps the repair inside this file rather
+//  than adding a launch-time hook in `AppDelegate`.
+//
+//  Why #available and not raising the deployment target: AGENTS.md's rule for
+//  this fork is "guard new API with #available rather than raising the target".
 //
 
-import SwiftUI
+import Foundation
 import ServiceManagement
 
 enum LaunchAtLoginManager {
@@ -24,7 +38,6 @@ enum LaunchAtLoginManager {
     enum Status: Equatable {
         case enabled
         case disabled
-        case unsupported
         case failed(String)
     }
 
@@ -32,18 +45,16 @@ enum LaunchAtLoginManager {
 
     static func currentStatus() -> Status {
         if #available(macOS 13.0, *) {
-            let canRegister = SMAppService.mainApp.status
-            switch canRegister {
-            case .enabled:  return .enabled
-            case .requiresApproval:
-                // Registered but waiting for the user to approve in
-                // System Settings. Treat as enabled so the UI shows the
-                // toggle in the 'on' position.
+            switch SMAppService.mainApp.status {
+            case .enabled, .requiresApproval:
+                // `requiresApproval` means registered but waiting for the user
+                // to allow it in System Settings, so the toggle stays on.
                 return .enabled
-            default:        return .disabled
+            default:
+                return .disabled
             }
         } else {
-            return .unsupported
+            return LaunchAgent.isRegistered() ? .enabled : .disabled
         }
     }
 
@@ -51,40 +62,76 @@ enum LaunchAtLoginManager {
 
     @discardableResult
     static func setEnabled(_ enabled: Bool) -> Status {
-        guard #available(macOS 13.0, *) else {
-            return .unsupported
-        }
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
+        if #available(macOS 13.0, *) {
+            do {
+                if enabled {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+            } catch {
+                return .failed(error.localizedDescription)
             }
-        } catch {
-            return .failed(error.localizedDescription)
+        } else {
+            do {
+                if enabled {
+                    try LaunchAgent.write()
+                } else {
+                    try LaunchAgent.remove()
+                }
+            } catch {
+                return .failed(error.localizedDescription)
+            }
         }
         return currentStatus()
     }
 
-    // MARK: - Rename migration
+    // MARK: - macOS 11–12: the launchd user agent
 
-    /// SMAppService registrations are bound to the bundle id. The app was
-    /// renamed from iTrafficPlus (`local.iTrafficPlus`) to FlowTrace
-    /// (`local.FlowTrace`), so a migrated `launchAtLogin = true` points at a
-    /// login item that no longer matches this app. If the setting is on but
-    /// the OS registration for the *current* bundle id is missing, register
-    /// once at launch so the toggle keeps working across the rename.
-    static func ensureRegisteredAfterRename() {
-        guard #available(macOS 13.0, *) else { return }
-        guard SettingsStore.shared.launchAtLogin else { return }
-        switch SMAppService.mainApp.status {
-        case .enabled, .requiresApproval:
-            break // already registered under the new identity
-        case .notRegistered, .notFound:
-            do { try SMAppService.mainApp.register() }
-            catch { Log.settings.error("[migration] login-item re-register failed: \(error.localizedDescription)") }
-        @unknown default:
-            break
+    private enum LaunchAgent {
+
+        /// Reverse-DNS, scoped to this fork's bundle id so it cannot collide
+        /// with anything else in the user's `~/Library/LaunchAgents`.
+        static let label = "local.FlowTrace.login"
+
+        static var url: URL {
+            FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/LaunchAgents", isDirectory: true)
+                .appendingPathComponent(label + ".plist")
+        }
+
+        /// Whether the agent is registered. As a side effect this rewrites an
+        /// agent that points somewhere other than the running bundle, which is
+        /// what keeps the toggle honest after the app is moved or the build
+        /// directory is cleaned out.
+        static func isRegistered() -> Bool {
+            guard FileManager.default.fileExists(atPath: url.path) else { return false }
+            try? write()
+            return true
+        }
+
+        static func write() throws {
+            let plist: [String: Any] = [
+                "Label": label,
+                // `-g` keeps the app from stealing focus at login. `RunAtLoad`
+                // without `KeepAlive` means launchd starts it once and does not
+                // resurrect it if the user quits.
+                "ProgramArguments": ["/usr/bin/open", "-g", Bundle.main.bundlePath],
+                "RunAtLoad": true,
+            ]
+            let data = try PropertyListSerialization.data(
+                fromPropertyList: plist, format: .xml, options: 0
+            )
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try data.write(to: url, options: .atomic)
+        }
+
+        static func remove() throws {
+            guard FileManager.default.fileExists(atPath: url.path) else { return }
+            try FileManager.default.removeItem(at: url)
         }
     }
 }

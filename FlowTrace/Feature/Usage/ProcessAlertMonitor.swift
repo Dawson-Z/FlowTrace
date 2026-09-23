@@ -39,6 +39,7 @@ final class ProcessAlertMonitor {
     }
 
     private let settings: SettingsStore
+    private let deliver: NotificationDelivery
     private let queue = DispatchQueue(label: "process-alert-monitor", qos: .utility)
 
     // Main-queue state (fed from the frame handler).
@@ -50,8 +51,17 @@ final class ProcessAlertMonitor {
     /// so per-frame evaluation buys nothing.
     private let checkInterval: TimeInterval = 60
 
-    init(settings: SettingsStore = .shared) {
+    /// Alerts whose delivery was refused, keyed `"<nameKey>:<direction>"`, so
+    /// they can be retried without attempting (and logging) on every check.
+    /// In-memory on purpose: a restart retries immediately, which is what we
+    /// want once the user fixes the permission.
+    private var retryAfter: [String: Date] = [:]
+    private static let failedAttemptBackoff: TimeInterval = 15 * 60
+
+    init(settings: SettingsStore = .shared,
+         deliver: @escaping NotificationDelivery = LocalNotification.deliver) {
         self.settings = settings
+        self.deliver = deliver
         self.currentDay = ProcessAlertMonitor.dayOrdinal(Date())
     }
 
@@ -143,27 +153,48 @@ final class ProcessAlertMonitor {
 
     private func fire(persistence: HistoryPersistence, day: Int, nameKey: String,
                       direction: String, todayBytes: Int, baselineBytes: Int, multiplier: Double) {
-        let row = ProcessAlertRow(
-            day: day,
-            name: nameKey,
-            nameKey: nameKey,
-            direction: direction,
-            todayBytes: todayBytes,
-            baselineBytes: baselineBytes,
-            multiplier: multiplier,
-            ts: Int64(Date().timeIntervalSince1970 * 1000)
-        )
-        persistence.appendProcessAlert(row) { [weak self] inserted in
-            guard let self, inserted else { return }   // dedup: unique index said "already today"
-            self.postNotification(nameKey: nameKey, isIn: direction == "in",
-                                  todayBytes: todayBytes, baselineBytes: baselineBytes)
+        // Deliver *before* writing the dedup row.
+        //
+        // The `process_alert` row is the storage-level "already alerted today"
+        // marker (see the class comment). Writing it first would mean a refused
+        // delivery still silences this process for the rest of the day — the
+        // user is never told and never retried. So the row is written only once
+        // the system has actually accepted the notification.
+        let alertKey = "\(nameKey):\(direction)"
+        if let next = retryAfter[alertKey], Date() < next { return }
+
+        postNotification(nameKey: nameKey, isIn: direction == "in",
+                         todayBytes: todayBytes, baselineBytes: baselineBytes) { [weak self] delivered in
+            guard let self else { return }
+            guard delivered else {
+                self.retryAfter[alertKey] = Date().addingTimeInterval(Self.failedAttemptBackoff)
+                return
+            }
+            self.retryAfter[alertKey] = nil
+            let row = ProcessAlertRow(
+                day: day,
+                name: nameKey,
+                nameKey: nameKey,
+                direction: direction,
+                todayBytes: todayBytes,
+                baselineBytes: baselineBytes,
+                multiplier: multiplier,
+                ts: Int64(Date().timeIntervalSince1970 * 1000)
+            )
+            persistence.appendProcessAlert(row) { _ in
+                // `inserted == false` means another writer got there first
+                // between our check and now; the notification is already out,
+                // so there is nothing further to do.
+            }
         }
     }
 
-    private func postNotification(nameKey: String, isIn: Bool, todayBytes: Int, baselineBytes: Int) {
+    private func postNotification(nameKey: String, isIn: Bool, todayBytes: Int, baselineBytes: Int,
+                                  completion: @escaping (Bool) -> Void) {
+        let dirWord = isIn ? Loc.l("download") : Loc.l("upload")
+        let dir = direction(isIn)
         let content = UNMutableNotificationContent()
         content.title = Loc.l("Unusual traffic")
-        let dirWord = isIn ? Loc.l("download") : Loc.l("upload")
         let volume = ByteFormatter.string(bytes: todayBytes)
         // Arg order: 1 name, 2 direction, 3 volume, 4 factor (baseline variant only).
         let body: String
@@ -185,8 +216,12 @@ final class ProcessAlertMonitor {
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
-        Log.settings.info("process alert: \(nameKey) \(self.direction(isIn)) \(todayBytes)B vs median \(baselineBytes)B")
+        deliver(request) { delivered in
+            Log.settings.info(
+                "process alert: \(nameKey) \(dir) \(todayBytes)B vs median \(baselineBytes)B delivered=\(delivered)"
+            )
+            completion(delivered)
+        }
     }
 
     private func direction(_ isIn: Bool) -> String { isIn ? "in" : "out" }
@@ -227,18 +262,12 @@ final class ProcessAlertMonitor {
         }
         accum = [:]
         baselines = [:]
+        retryAfter = [:]
         currentDay = Self.dayOrdinal(Date())
     }
 
     static func dayOrdinal(_ date: Date) -> Int {
         let tz = TimeInterval(TimeZone.current.secondsFromGMT())
         return Int((date.timeIntervalSince1970 + tz) / 86400)
-    }
-
-    /// Request notification authorization (called when alerts are enabled).
-    static func requestAuthorization() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
-            Log.settings.info("alert auth granted=\(granted) error=\(error?.localizedDescription ?? "nil")")
-        }
     }
 }

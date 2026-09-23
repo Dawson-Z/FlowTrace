@@ -12,6 +12,7 @@ import SwiftUI
 struct SettingsAlertsPane: View {
     @ObservedObject var settings: SettingsStore
     @ObservedObject private var l10n = LocalizationManager.shared
+    @StateObject private var permission = NotificationPermissionModel()
 
     var body: some View {
         SettingsPane {
@@ -20,6 +21,8 @@ struct SettingsAlertsPane: View {
             }
 
             if settings.uploadAlertEnabled {
+                NotificationPermissionWarning(model: permission)
+
                 SettingsRow(label: "Download multiplier (×)") {
                     EditableNumberField(
                         value: $settings.alertDownloadMultiplier,
@@ -51,6 +54,9 @@ struct SettingsAlertsPane: View {
                 SettingsNote(text: "Alerts when a process's daily traffic reaches the floor and exceeds its 7-day daily median by the multiplier. One alert per process per direction per day; see the alert log in history.")
             }
         }
+        // Same reason as the Quota pane: refresh on every rebuild so the
+        // warning tracks the live authorization status.
+        .onAppear { permission.refresh() }
     }
 
     /// Enabling traffic alerts also asks for notification permission.
@@ -59,7 +65,7 @@ struct SettingsAlertsPane: View {
             get: { settings.uploadAlertEnabled },
             set: { on in
                 settings.uploadAlertEnabled = on
-                if on { ProcessAlertMonitor.requestAuthorization() }
+                if on { permission.request() }
             }
         )
     }

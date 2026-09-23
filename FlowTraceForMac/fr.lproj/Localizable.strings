@@ -133,3 +133,10 @@
 "About statistics" = "Fonctionnement des statistiques : les débits de la barre des menus et du popover, ainsi que les totaux du jour et de la période, sont échantillonnés chaque seconde et sommés en direct — la période suit le réglage Quota (jour / semaine / mois) ; la fenêtre d'historique (statistiques des processus, carte thermique, journal des alertes) est enregistrée par minute avec un décalage d'environ une minute.";
 "About privacy" = "Confidentialité : toutes les données restent sur ce Mac dans une base SQLite locale. L'app n'effectue aucune requête réseau et n'envoie rien.";
 "About tech note" = "Notes techniques : les chiffres de trafic proviennent de l'interface nettop du système (compteurs du noyau, même source que le Moniteur d'activité) ; stockage SQLite local, aucune dépendance tierce ; chinois simplifié, chinois traditionnel, anglais et plus encore disponibles ; apparence suivant le système, claire ou sombre.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "Les notifications sont désactivées dans Réglages Système ; les alertes ne pourront pas être délivrées.";
+"Open System Settings" = "Ouvrir Réglages Système";
+"Notification permission has not been granted yet." = "L'autorisation de notification n'a pas encore été accordée.";
+"Allow Notifications" = "Autoriser les notifications";
+"Notifications are turned off" = "Les notifications sont désactivées";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "Les alertes de quota, les alertes de trafic et les rappels de rétention ne pourront pas être délivrés. Activez les notifications de FlowTrace dans Réglages Système.";
+"Don't remind me again" = "Ne plus me le rappeler";

@@ -60,16 +60,6 @@ final class HistoryPersistence {
         )) ?? URL(fileURLWithPath: NSTemporaryDirectory())
         let dir = base.appendingPathComponent("FlowTrace", isDirectory: true)
         if !fm.fileExists(atPath: dir.path) {
-            // One-time rename migration: the app was previously shipped as
-            // "iTrafficPlus" and stored its database under App Support /
-            // iTrafficPlus. Move the whole folder so existing history and
-            // settings survive the rename with no copy cost.
-            let legacy = base.appendingPathComponent("iTrafficPlus", isDirectory: true)
-            if fm.fileExists(atPath: legacy.path) {
-                try? fm.moveItem(at: legacy, to: dir)
-            }
-        }
-        if !fm.fileExists(atPath: dir.path) {
             try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         }
         return dir.appendingPathComponent("history.sqlite3")

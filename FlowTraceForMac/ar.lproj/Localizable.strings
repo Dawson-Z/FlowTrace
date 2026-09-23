@@ -133,3 +133,10 @@
 "About statistics" = "كيف تعمل الإحصاءات: سرعات شريط القوائم والنافذة المنبثقة وإجماليات اليوم والفترة تُعيَّن كل ثانية وتُجمع مباشرة — الفترة تتبع إعداد الحصة (يوم / أسبوع / شهر)؛ نافذة السجل (إحصاءات العمليات، الخريطة الحرارية، سجل التنبيهات) تُحفظ بالدقيقة وتتأخر نحو دقيقة.";
 "About privacy" = "الخصوصية: تبقى كل البيانات على هذا الماك في قاعدة بيانات SQLite محلية. لا يُرسل التطبيق أي طلبات شبكة ولا يرفع شيئًا.";
 "About tech note" = "ملاحظات تقنية: أرقام الحركة تأتي من واجهة nettop في النظام (عدّادات النواة، المصدر نفسه لمراقبة النشاط)؛ تخزين SQLite محلي، بلا تبعيات طرف ثالث؛ الصينية المبسطة والتقليدية والإنجليزية ولغات أخرى مدعومة؛ المظهر يتبع النظام أو فاتح أو داكن.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "إشعارات FlowTrace معطّلة في إعدادات النظام، لذلك لن يتم إرسال التنبيهات.";
+"Open System Settings" = "افتح إعدادات النظام";
+"Notification permission has not been granted yet." = "لم يتم منح إذن الإشعارات بعد.";
+"Allow Notifications" = "السماح بالإشعارات";
+"Notifications are turned off" = "الإشعارات مغلقة";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "لن يتم إرسال تنبيهات الحصة وتنبيهات الحركة وتذكيرات الاحتفاظ بالبيانات. فعّل إشعارات FlowTrace في إعدادات النظام.";
+"Don't remind me again" = "لا تذكّرني مرة أخرى";

@@ -133,3 +133,10 @@
 "About statistics" = "نحوه کار آمار: سرعت‌های نوار منو و پاپ‌آور و جمع‌های امروز و دوره هر ثانیه نمونه‌برداری و به‌صورت زنده جمع می‌شوند — دوره از تنظیمات سهمیه (روز / هفته / ماه) پیروی می‌کند؛ پنجره تاریخچه (آمار فرایندها، نقشه گرما، ثبت هشدارها) هر دقیقه ذخیره می‌شود و حدوداً یک دقیقه عقب‌تر است.";
 "About privacy" = "حریم خصوصی: همه داده‌ها روی همین مک در پایگاه داده SQLite محلی می‌مانند. خود برنامه هیچ درخواست شبکه‌ای نمی‌سازد و چیزی آپلود نمی‌کند.";
 "About tech note" = "یادداشت‌های فنی: ارقام ترافیک از رابط nettop سیستم می‌آید (شمارنده‌های هسته، همان منبع Activity Monitor)؛ ذخیره‌سازی SQLite محلی، بدون وابستگی ثالث؛ چینی ساده‌شده، چینی سنتی، انگلیسی و زبان‌های دیگر پشتیبانی می‌شود؛ ظاهر هماهنگ با سیستم، روشن یا تیره.";
+"Notifications are disabled in System Settings. Alerts cannot be delivered." = "اعلان‌های FlowTrace در تنظیمات سیستم خاموش است، بنابراین هشدارها ارسال نمی‌شوند.";
+"Open System Settings" = "باز کردن تنظیمات سیستم";
+"Notification permission has not been granted yet." = "مجوز اعلان‌ها هنوز داده نشده است.";
+"Allow Notifications" = "اجازه اعلان‌ها";
+"Notifications are turned off" = "اعلان‌ها خاموش هستند";
+"Quota alerts, traffic alerts and retention reminders cannot be delivered. Turn on notifications for FlowTrace in System Settings." = "هشدارهای سهمیه، هشدارهای ترافیک و یادآورهای نگهداری ارسال نمی‌شوند. اعلان‌های FlowTrace را در تنظیمات سیستم روشن کنید.";
+"Don't remind me again" = "دیگر یادآوری نکن";

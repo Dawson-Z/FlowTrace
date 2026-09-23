@@ -33,11 +33,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // for why both sinks are needed on macOS 11+ ad-hoc-signed builds.
         Log.appDelegate.info("applicationDidFinishLaunching entered; log file=\(LogFileSink.logFileURL?.path ?? "off")")
 
-        // After the iTrafficPlus → FlowTrace rename the login-item
-        // registration is bound to the old bundle id. If the migrated
-        // setting says launch-at-login, re-register under the new identity.
-        LaunchAtLoginManager.ensureRegisteredAfterRename()
-
         // Menu-bar app (LSUIElement) is "active" almost all the time, and a
         // foreground app that does not implement willPresent only receives
         // notifications into Notification Center — no banner. Registering as
@@ -60,10 +55,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         if let persistence = HistoryPersistence(dbURL: HistoryPersistence.defaultDbURL(), retentionSeconds: retention) {
             SharedStore.attachHistoryPersistence(persistence)
             SharedStore.processAlertMonitor.bootstrap()
+            // Same reason as the line above: `quotaMonitor` is a lazily
+            // initialised `static let`, so its `init` — and with it the
+            // subscriptions to `settings.$quotaEnabled` and the usage
+            // aggregator — does not run until something touches the instance.
+            // Nothing else in the launch path did, which left the quota feature
+            // silently dead (no threshold could ever fire).
+            SharedStore.quotaMonitor.bootstrap()
             Log.appDelegate.info("history persistence attached at \(persistence.dbURL.path); retention=\(Int(retention/86400))d")
         } else {
             Log.appDelegate.error("history persistence failed to open; falling back to in-memory only")
         }
+
+        // See the method comment: the Settings toggles only request permission
+        // at the moment they are flipped on, so an install whose toggle is
+        // already on would otherwise never prompt.
+        requestNotificationAuthorizationIfNeeded()
 
         self.contentView = ContentView()
         let statusBarView = AnyView(StatusBarView())
@@ -319,6 +326,92 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         Log.appDelegate.info("history window opened")
+    }
+
+    // MARK: - Notification permission
+
+    /// Ask for notification permission once at launch, when at least one
+    /// notifying feature is already enabled.
+    ///
+    /// The Settings toggles call `requestAuthorization()` only at the moment the
+    /// user flips them on, so a toggle that is already on — because it was
+    /// enabled in an earlier run — never prompts again. That matters here
+    /// because the notification permission is keyed to the app's code-signing
+    /// identity, and this fork is ad-hoc signed, so a rebuild is a new identity
+    /// and the grant can be lost. Without this the features look enabled but
+    /// stay silent, and the only symptom is a log line nobody reads.
+    ///
+    /// `getNotificationSettings` never prompts; only the `.notDetermined` branch
+    /// shows the system dialog. A `.denied` answer is final — the system dialog
+    /// will never pop again — so that branch gets the launch alert instead:
+    /// an explicit pointer to System Settings, suppressible per user choice
+    /// (the Settings panes keep their inline warnings either way).
+    private func requestNotificationAuthorizationIfNeeded() {
+        let settings = SettingsStore.shared
+        let needed = settings.quotaEnabled
+            || settings.uploadAlertEnabled
+            || settings.cleanupModeRaw == CleanupMode.manualNotification.rawValue
+        guard needed else { return }
+
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { current in
+            DispatchQueue.main.async {
+                switch current.authorizationStatus {
+                case .notDetermined:
+                    center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+                        Log.appDelegate.info(
+                            "notification authorization requested: granted=\(granted) error=\(error?.localizedDescription ?? "nil")"
+                        )
+                    }
+                case .denied:
+                    Log.appDelegate.error(
+                        "notifications are denied in System Settings → Notifications → FlowTrace;"
+                        + " quota and traffic alerts will not be delivered"
+                    )
+                    Self.presentLaunchReminderIfNotSuppressed()
+                default:
+                    Log.appDelegate.info("notification authorization already granted")
+                }
+            }
+        }
+    }
+
+    private static let launchReminderSuppressedKey = "notificationLaunchReminderSuppressed"
+
+    /// The launch alert for a denied permission: what breaks (quota alerts,
+    /// traffic alerts, retention reminders), where to fix it, and a permanent
+    /// opt-out. Opting out writes the suppression key only — the Settings
+    /// panes' inline warnings keep working, so this silences the launch prompt
+    /// without removing every path to a fix.
+    ///
+    /// **Suppressed under XCTest.** The test bundle runs inside this app, so
+    /// `applicationDidFinishLaunching` executes for real during a test run;
+    /// a modal `runModal()` there would hold the main thread hostage and hang
+    /// every test that awaits a main-queue callback (measured: two
+    /// AlertAndQuotaIntegration tests timed out until this guard was added).
+    private static func presentLaunchReminderIfNotSuppressed() {
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
+
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: launchReminderSuppressedKey) else { return }
+
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = Loc.l("Notifications are turned off")
+        alert.informativeText = Loc.l(
+            "Quota alerts, traffic alerts and retention reminders cannot be delivered."
+                + " Turn on notifications for FlowTrace in System Settings."
+        )
+        alert.addButton(withTitle: Loc.l("Open System Settings"))
+        alert.addButton(withTitle: Loc.l("Don't remind me again"))
+        let response = alert.runModal()
+
+        if response == .alertSecondButtonReturn {
+            defaults.set(true, forKey: launchReminderSuppressedKey)
+            Log.appDelegate.info("launch notification reminder suppressed by user")
+        } else if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     func applicationWillResignActive(_ aNotification: Notification)

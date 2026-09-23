@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/macos/project-layout.md", "reason": "verify the spec's target count and tree table were amended, not left saying two"}
+{"file": "AGENTS.md", "reason": "verify the outside-bundle convention and Layout block were updated rather than left stale"}
+{"file": "docs/ARCHITECTURE.md", "reason": "verify the login-item rows describe the mechanism that actually ships"}
+{"file": "FlowTrace/Feature/Settings/LaunchAtLoginManager.swift", "reason": "verify the 13+ branch is unchanged and the LaunchAgent enum is gone"}

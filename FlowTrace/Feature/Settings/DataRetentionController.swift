@@ -37,9 +37,21 @@ final class DataRetentionController {
     /// Day key ("yyyy-MM-dd") of the last checkpoint that fired, so we never
     /// fire twice for the same day even across wake cycles / restarts.
     private var lastFiredDay: String?
+    private var cancellables: Set<AnyCancellable> = []
 
     init(settings: SettingsStore = .shared) {
         self.settings = settings
+        // Editing any checkpoint input re-arms the day. Without this, a change
+        // made *after* today's checkpoint had already run — e.g. lowering the
+        // retention days from 360 to 2 while 1M rows are suddenly overdue —
+        // stayed silent until tomorrow: the 16:28 tick had consumed the day on
+        // a zero-overdue no-op, and nothing re-evaluated it (measured
+        // 2026-09-23). Re-arming resets the marker and re-checks immediately;
+        // the marker itself self-throttles, so a burst of edits fires at most
+        // one checkpoint.
+        settings.$cleanupModeRaw.dropFirst().sink { [weak self] _ in self?.rearm() }.store(in: &cancellables)
+        settings.$historyRetentionDays.dropFirst().sink { [weak self] _ in self?.rearm() }.store(in: &cancellables)
+        settings.$retentionTimeOfDay.dropFirst().sink { [weak self] _ in self?.rearm() }.store(in: &cancellables)
     }
 
     /// Begin the daily checkpoint loop. Idempotent (safe to call at launch).
@@ -53,6 +65,12 @@ final class DataRetentionController {
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t
+        tick()
+    }
+
+    /// Forget today's consumed marker and re-evaluate right away.
+    private func rearm() {
+        lastFiredDay = nil
         tick()
     }
 
@@ -121,15 +139,10 @@ final class DataRetentionController {
             content: content,
             trigger: nil
         )
-        UNUserNotificationCenter.current().add(request)
-        Log.settings.info("retention reminder posted: \(count) rows overdue")
-    }
-
-    /// Request notification authorization for manual-mode reminders (called
-    /// when the user picks "notify me" in Settings).
-    static func requestAuthorization() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
-            Log.settings.info("retention auth granted=\(granted) error=\(error?.localizedDescription ?? "nil")")
+        // The reminder repeats daily by design, so there is no dedup to protect
+        // here — it just must not look like a success when the system refused it.
+        LocalNotification.deliver(request) { delivered in
+            Log.settings.info("retention reminder: \(count) rows overdue, delivered=\(delivered)")
         }
     }
 

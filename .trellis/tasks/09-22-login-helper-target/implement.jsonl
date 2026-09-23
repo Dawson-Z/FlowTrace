@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/macos/project-layout.md", "reason": "the two-tree layout and its 'project.yml declares two targets' statement — this task makes it three"}
+{"file": "AGENTS.md", "reason": "the deployment-target floor, the 'writes exactly one file outside its bundle' convention that inverts, and the Layout block that gains a third tree"}
+{"file": "project.yml", "reason": "the file that gains the helper target and the Contents/Library/LoginItems embed phase"}
+{"file": "FlowTrace/Feature/Settings/LaunchAtLoginManager.swift", "reason": "the 11-12 branch this task replaces; the 13+ branch must survive untouched"}
+{"file": "docs/ARCHITECTURE.md", "reason": "the login-item and target-count rows that must move with the code"}
