@@ -54,7 +54,7 @@
 "App usage" = "進程統計";
 "App usage stats note" = "按進程、按本地分鐘落庫（約延遲 1 分鐘）；列出所選時間段內各進程的上傳/下載累計位元組。";
 "Heatmap stats note" = "按網路介面、按本地分鐘落庫（約延遲 1 分鐘）；顏色深淺 = 該小時流量占比，懸停 = 該小時下載/上傳/總量。";
-"Heatmap total gap note" = "介面維度總量略小於程序總量（含無法歸類的無標記流量）。";
+"Heatmap total gap note" = "介面維度總量略小於程序總量（不含無法歸類的無標記流量）。";
 "Heatmap interface range" = "介面範圍：Wi-Fi＝無線網卡；有線＝乙太網路/USB/雷電網卡；本地直連＝AWDL 點對點直連；其他＝橋接/其他虛擬介面。";
 "Export" = "匯出";
 "Export CSV" = "匯出 CSV";

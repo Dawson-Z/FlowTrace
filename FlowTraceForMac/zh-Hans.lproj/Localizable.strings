@@ -54,7 +54,7 @@
 "App usage" = "进程统计";
 "App usage stats note" = "按进程、按本地分钟落库（约滞后 1 分钟）；列出所选时间段内各进程的上传/下载累计字节。";
 "Heatmap stats note" = "按网络接口、按本地分钟落库（约滞后 1 分钟）；颜色深浅 = 该小时流量占比，悬停 = 该小时下载/上传/总量。";
-"Heatmap total gap note" = "接口维度总量略小于进程总量（含无法归类的无标记流量）。";
+"Heatmap total gap note" = "接口维度总量略小于进程总量（不含无法归类的无标记流量）。";
 "Heatmap interface range" = "接口范围：Wi-Fi＝无线网卡；有线＝以太网/USB/雷电网卡；本地直连＝AWDL 点对点直连；其他＝桥接/其它虚拟接口。";
 "Export" = "导出";
 "Export CSV" = "导出 CSV";

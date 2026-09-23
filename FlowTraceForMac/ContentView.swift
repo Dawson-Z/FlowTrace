@@ -45,25 +45,16 @@ struct ContentView: View {
                 Text(Loc.appDisplayName)
                     .font(.headline)
                 Spacer()
-                // No version line 
-                // The header just shows the logo and the trailing GitHub / Quit links.
-                MenuItem(id: "menu.github", text: Loc.l("Upstream"), action: {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/foamzou/ITraffic-monitor-for-mac")!)
+                // The fork drops the upstream's "Upstream" link: a monitor
+                // should not advertise another product from its own header,
+                // and the repo lives with the user, not a click away.
+                // Settings and Quit are the only header controls — each an
+                // icon + label pair via MenuItem's optional SF Symbol.
+                MenuItem(id: "menu.settings", icon: "gearshape", text: Loc.l("Settings"), action: {
+                    NSApp.sendAction(#selector(AppDelegate.showSettingsWindow), to: nil, from: nil)
                 })
-                // Settings cog. Unicode glyph (U+2699) instead of an SF Symbol
-                // because a Symbol would need `.font()` at menu-bar sizes and
-                // would still get resized out of proportion — see AGENTS.md
-                // rule on SF Symbols.
-                Text("⚙")
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray)
-                    .contentShape(Rectangle())
-                    .animation(.none)
-                    .onTapGesture {
-                        NSApp.sendAction(#selector(AppDelegate.showSettingsWindow), to: nil, from: nil)
-                    }
-                    .help(Loc.l("Settings"))
-                MenuItem(id: "menu.quit", text: Loc.l("Quit"), action: AppDelegate.quit)
+                .help(Loc.l("Settings"))
+                MenuItem(id: "menu.quit", icon: "power", text: Loc.l("Quit"), action: AppDelegate.quit)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)

@@ -38,6 +38,18 @@ struct SettingsAboutPane: View {
                     Text(String(format: Loc.l("Version %@"), versionText))
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    // The fork's own source repository. A plain Link opens the
+                    // browser only on click — the app itself still makes no
+                    // network requests (the AGENTS.md rule); "GitHub" is a
+                    // proper noun and needs no localization.
+                    Link(destination: URL(string: "https://github.com/Dawson-Z/FlowTrace")!) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "link")
+                                .font(.system(size: 10))
+                            Text("GitHub")
+                                .font(.caption)
+                        }
+                    }
                 }
                 Spacer(minLength: 0)
             }

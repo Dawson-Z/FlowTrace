@@ -461,6 +461,12 @@ codesign --force --sign <身份哈希> /tmp/probe
   这是分支自有代码（非上游），但行为记录在 `docs/ARCHITECTURE.md` §4.3。`InterfaceClassifierTests` 里保留了
   一个用本机真实 `networksetup -listallhardwareports` 输出构造的回归用例。
 
+- **弹窗头部控件（2026-09，1.0.0 基线之后）。** 移除上游头部的「Upstream」链接（一段
+  `NSWorkspace.open` 打开上游仓库的代码）——分支弹窗头部现在只有应用图标/名称、**设置**与**退出**。
+  两个控件都用 `MenuItem`，并为其新增了可选 `icon: String?` 参数（SF Symbol，按 `.font` 控制大小，
+  默认 `nil`，纯文字的既有调用不受影响），改动的上游文件是 `FlowTraceForMac/MenuItem.swift`；
+  设置用 `gearshape`，退出用 `power`。触及 `ContentView.swift`、`MenuItem.swift`。
+
 ## 总结一句话
 
 **AGENTS.md 是最终仲裁者**。spec 与 AGENTS.md 冲突时以 AGENTS.md 为准
