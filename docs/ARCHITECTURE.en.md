@@ -1,7 +1,7 @@
 # FlowTrace Technical Architecture & File Reference
 
 > This document was rewritten from the current working tree (macOS 11.0
-> deployment target, `xcodebuild test` 205 passing). All type names,
+> deployment target, `xcodebuild test` 206 passing). All type names,
 > method names, and SQL table names are drawn from the actual code;
 > quoted comments are flagged with their source.
 
@@ -115,9 +115,9 @@ FlowTrace/
 | File | Responsibility |
 |---|---|
 | `AppDelegate.swift` | Entry point (`@NSApplicationMain`). Launch order, menu-bar `NSStatusItem` wiring, popover lifecycle & deep sleep, lazy creation of settings/history windows, notification delegate (banner/sound even in the foreground), the denied-permission launch reminder alert (permanently suppressible; skipped under XCTest), localised window-title refresh |
-| `ContentView.swift` | Popover root: header (icon + name + upstream link + ⚙ + Quit) → search bar → sortable headers → process list → interface summary → history sparkline. Contains `ProcessRow`. |
+| `ContentView.swift` | Popover root: header (icon + name + Settings + Quit) → search bar → sortable headers → process list → interface summary → history sparkline. Contains `ProcessRow`. |
 | `StatusBarView.swift` | Menu-bar content: two fixed-width columns — rate column (49 pt: ↙/↗ + rate) and totals column (38 pt: `D`=today, `P`=current quota period). The width constants must agree with `AppDelegate.statusBarLength`. |
-| `MenuItem.swift` | Header text buttons (Quit / Upstream) |
+| `MenuItem.swift` | Header text buttons with an optional SF Symbol (`icon: String?`, default nil): Settings (`gearshape`) and Quit (`power`) |
 | `Network.swift` | **The frame-pipeline hub.** `handleFrame` feeds `ProcessUsageAggregator` / `UsageAggregator.tick` / `ProcessAlertMonitor`, then on the main queue writes `HistoryStore`, `StatusDataModel`, `ListViewModel`. Contains `parser` (the only normalisation point) and `tryToMakeAppSleepDeep` (release the popover controller after 30 idle frames) |
 | `Store.swift` | `enum SharedStore`: all singletons + `attachHistoryPersistence(_:)` + `View.withGlobalEnvironmentObjects()` |
 | `ProcessEntity.swift` | Value type: `pid / name / inBytesPerSec / outBytesPerSec / icon` (`icon` is `NSImage?`) |
@@ -231,7 +231,7 @@ Category names (also the property names on `Log` / `AppLogger`):
 
 ### 4.4 `FlowTraceTests/`
 
-22 test files, 205 cases (2026-09). Real dependencies, injection-isolated — the
+22 test files, 206 cases (2026-09). Real dependencies, injection-isolated — the
 host process is **not**:
 
 | File | Coverage |

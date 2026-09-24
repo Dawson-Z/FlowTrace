@@ -1,6 +1,6 @@
 # FlowTrace 技术架构与目录说明
 
-> 本文档基于当前工作树（macOS 11.0 部署目标、`xcodebuild test` 205 条全部通过）逐文件梳理。
+> 本文档基于当前工作树（macOS 11.0 部署目标、`xcodebuild test` 206 条全部通过）逐文件梳理。
 > 所有类型名、方法名、SQL 表名均取自真实代码；引用注释处标注原文出处。
 
 ---
@@ -106,9 +106,9 @@ FlowTrace/
 | 文件 | 职责 |
 |---|---|
 | `AppDelegate.swift` | 入口（`@NSApplicationMain`）。启动顺序、菜单栏 `NSStatusItem` 装配、popover 生命周期与深度休眠、设置窗/历史窗的懒创建、通知代理（前台也弹 banner/sound）、通知被拒时的启动引导弹窗（可永久抑制，XCTest 下跳过）、窗口标题的本地化刷新 |
-| `ContentView.swift` | popover 根视图：头部（图标 + 名称 + 上游链接 + ⚙ + 退出）→ 搜索栏 → 排序表头 → 进程列表 → 接口概览 → 历史 sparkline。含 `ProcessRow` |
+| `ContentView.swift` | popover 根视图：头部（图标 + 名称 + 设置 + 退出）→ 搜索栏 → 排序表头 → 进程列表 → 接口概览 → 历史 sparkline。含 `ProcessRow` |
 | `StatusBarView.swift` | 菜单栏内容：固定宽度两列 —— 速率列（49pt：↙/↗ + 速率）与总量列（38pt：`D`=今日、`P`=当前配额周期）。宽度常量与 `AppDelegate.statusBarLength` 必须保持一致 |
-| `MenuItem.swift` | 头部的小文本按钮（Quit / Upstream） |
+| `MenuItem.swift` | 头部的小文本按钮，支持可选 SF Symbol 图标（`icon: String?`，默认 nil）：设置（`gearshape`）与退出（`power`） |
 | `Network.swift` | **帧管线中枢**。`handleFrame` 把一帧喂给 `ProcessUsageAggregator` / `UsageAggregator.tick` / `ProcessAlertMonitor`，再在主队列写 `HistoryStore`、`StatusDataModel`、`ListViewModel`。含 `parser`（唯一归一化点）与 `tryToMakeAppSleepDeep`（30 帧无交互后释放 popover controller） |
 | `Store.swift` | `enum SharedStore`：全部单例 + `attachHistoryPersistence(_:)` + `View.withGlobalEnvironmentObjects()` |
 | `ProcessEntity.swift` | 值类型：`pid / name / inBytesPerSec / outBytesPerSec / icon`（`Icon` 为 `NSImage?`） |
@@ -212,7 +212,7 @@ FlowTrace/
 
 ### 4.4 `FlowTraceTests/`
 
-22 个测试文件，205 条用例（2026-09）。全部走真实依赖、注入隔离，只是不隔离宿主进程：
+22 个测试文件，206 条用例（2026-09）。全部走真实依赖、注入隔离，只是不隔离宿主进程：
 
 | 文件 | 覆盖内容 |
 |---|---|
