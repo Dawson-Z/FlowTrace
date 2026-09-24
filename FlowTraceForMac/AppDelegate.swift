@@ -76,11 +76,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         let statusBarView = AnyView(StatusBarView())
         self.network = Network()
         
-        // Create the popover. Width 340 / height 520 fits the wider header
-        // (header + search + sort + scroll + interface + history + summary
-        // row); the upstream's 300x420 sized for the old single-section.
+        // Create the popover. Width 540 matches ContentView's
+        // `.frame(width: 540)`; declaring the real width matters because
+        // AppKit clamps the popover to the screen at `show` time using this
+        // size — a stale smaller value let the window grow (to the right)
+        // after positioning, pushing the right edge off-screen when the
+        // status item sits at the far end of the menu bar. Height stays a
+        // starting point: the sparkline grows it vertically.
         AppDelegate.popover = NSPopover()
-        AppDelegate.popover.contentSize = NSSize(width: 340, height: 520)
+        AppDelegate.popover.contentSize = NSSize(width: 540, height: 520)
         AppDelegate.popover.behavior = .transient
 //        popover.contentViewController = NSHostingController(rootView: contentView.withGlobalEnvironmentObjects())
         
@@ -211,6 +215,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
                 // The popover window is cached between shows; pin it to the
                 // app appearance so it always matches the Display-tab choice.
                 AppDelegate.popover.contentViewController?.view.window?.appearance = NSApp.appearance
+
+                // Belt-and-braces screen clamp. AppKit positions and clamps
+                // the popover at `show` time, but the SwiftUI content (and
+                // vertical growth from the sparkline) can resize the window
+                // after that; the extra width then extends to the right and
+                // ends up off-screen when the status item sits near the right
+                // end of the menu bar. Shift the final frame back inside the
+                // visible area — the arrow just points at a slightly
+                // different spot, which every menu-bar popover accepts.
+                if let window = AppDelegate.popover.contentViewController?.view.window,
+                   let visible = window.screen?.visibleFrame {
+                    var frame = window.frame
+                    if frame.maxX > visible.maxX {
+                        frame.origin.x = visible.maxX - frame.width
+                    }
+                    if frame.minX < visible.minX {
+                        frame.origin.x = visible.minX
+                    }
+                    if frame.origin != window.frame.origin {
+                        window.setFrameOrigin(frame.origin)
+                    }
+                }
 
                 globalModel.controllerHaveBeenReleased = false
             }

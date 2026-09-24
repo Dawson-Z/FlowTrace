@@ -461,6 +461,12 @@ codesign --force --sign <身份哈希> /tmp/probe
   这是分支自有代码（非上游），但行为记录在 `docs/ARCHITECTURE.md` §4.3。`InterfaceClassifierTests` 里保留了
   一个用本机真实 `networksetup -listallhardwareports` 输出构造的回归用例。
 
+- **弹窗屏幕边缘钳制（2026-09，1.0.0 基线之后）。** 状态图标位于菜单栏最右端时，弹窗右缘超出屏幕被遮挡：
+  AppKit 在 `show` 时按声明的 `contentSize` 做屏幕钳制，而它还是 340，SwiftUI 内容却钉死 540 宽 ——
+  定位之后窗口向右生长，超出部分就在屏幕外了。修复：声明真实宽度（`contentSize` 540×520），并在
+  `AppDelegate.togglePopover` 的 show 之后加一道钳制，把最终 frame 拉回 `screen.visibleFrame` 内
+  （左缘同样有守卫）。触及 `AppDelegate.swift`。
+
 - **弹窗头部控件（2026-09，1.0.0 基线之后）。** 移除上游头部的「Upstream」链接（一段
   `NSWorkspace.open` 打开上游仓库的代码）——分支弹窗头部现在只有应用图标/名称、**设置**与**退出**。
   两个控件都用 `MenuItem`，并为其新增了可选 `icon: String?` 参数（SF Symbol，按 `.font` 控制大小，
