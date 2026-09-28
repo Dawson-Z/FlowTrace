@@ -14,31 +14,37 @@ FlowTrace is a fork of [iTraffic](https://github.com/foamzou/ITraffic-monitor-fo
 
 The builds are signed with a self-signed certificate (the current signing identity is **`Dawson`**) and are **not notarised**, which means macOS will block the first launch until you allow it. [First launch](#first-launch) has the two-step. Everything works in user space: no System Extension, no NetworkExtension, no extra entitlements.
 
-## What it inherits
+## Features
 
-- `/usr/bin/nettop` driven directly from Swift, with the [upstream's two non-obvious nets](https://github.com/foamzou/ITraffic-monitor-for-mac/blob/main/ITrafficMonitorForMac/Service/NettopRunner.swift) still in place (TTY wrap + retained stdin pipe).
-- Per-process upload/download in a popover, total rates in the menu bar.
-- The 1-second sample / delta mode / first-frame-dropped rule.
-- The "do exactly one network request, only when clicked" rule — except this fork has **no** network request at all. That is also why there is no auto-updater; see [Updating](#updating).
+FlowTrace is a menu-bar network monitor. The live numbers are pulled from `/usr/bin/nettop` every second, persisted to a local SQLite database, and rolled up into the per-process view in the popover, the standalone history window, the settings window and the menu-bar status. Everything runs in user space — no System Extension, no NetworkExtension, no extra entitlements — and the app itself makes no network requests.
 
-## What is new in this fork
+<p align="center">
+  <img src="docs/images/menubar-popover.png" alt="FlowTrace menu-bar status and popover" width="640">
+</p>
 
-See [AGENTS.md](AGENTS.md) § Active experiments for the live list, and
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full per-file reference.
-As of 1.0.0 the fork adds, on top of the upstream:
+- **Menu-bar status** — optional totals next to the live ↙/↗ rates: today (`D`) and the current quota period (`P`). No background activity of its own.
+- **Process list popover** — per-process download / upload, today and period totals, six sort modes, name/PID search (case-insensitive), same-name process merge, and a live "today" column per row. The popover bottom carries the interface-overview strip (Wi-Fi / Wired / Local Direct / Other) and the last-two-minute history sparkline.
+- **Standalone history window** — three panes: app-usage table (per-process, per-minute aggregation), hour × day network heatmap (hover a cell for download/upload/total), and abnormal-traffic alert log. Every pane reuses the same local database; all three export to CSV.
+- **Interface dimension** — a second, independent `nettop` running in socket mode splits external traffic into Wi-Fi / Wired / Local Direct / Other, rendered as a stacked bar at the bottom of the popover.
+- **Quota alerts** — local notifications at 80% / 100% / custom thresholds, grouped by month / week / day, deduplicated per threshold per period.
+- **Per-process traffic alerts** — fires when today's traffic exceeds the process's 7-day daily median × the configured multiplier **and** a configurable absolute MB floor; deduplicated by local day + process + direction (a unique index in SQLite, so the no-double-fire rule survives restarts).
+- **Retention with daily checkpoint** — configurable retention window, daily checkpoint at a configurable time. Mode can be automatic cleanup, or a local notification reminding the user to clear the data by hand. Editing any storage setting re-checks retention immediately (otherwise shrinking retention after the daily checkpoint had already run would silently wait).
+- **Appearance follows system / light / dark** — pinned on the popover window too so it never goes out of sync with the chosen mode.
+- **Accent colour** — Follow system, or custom `#RRGGBB`. Custom mode reaches hand-built controls where AppKit cannot be tinted (date / time pickers, accent picker, text fields); "Follow system" keeps the native focus ring and calendar popup.
+- **21 languages** — runtime switching; numbers and dates format through the locale (German decimal separators etc.).
 
-- **Process list** — search by name or PID, six sort modes, same-name process
-  merge, and a live "today" column per row.
-- **History** — SQLite-backed frame history (survives restarts) behind the
-  popover sparkline, plus a standalone window with an app-usage table, an
-  hour × day network heatmap and an abnormal-traffic alert log, each
-  exportable to CSV.
-- **Interface dimension** — a second, independent `nettop` in socket mode
-  splits external traffic into Wi-Fi / Wired / Local Direct / Other.
-- **Usage** — period totals in the menu bar, quota-threshold alerts and
-  per-process abnormal-traffic alerts.
-- **Settings window** — retention and cleanup, quota, alerts, appearance,
-  accent colour and 21 languages, all applied at runtime.
+### Screenshots
+
+| | |
+|---|---|
+| ![History window — app-usage table](docs/images/History-Process-stats.png) | ![History window — hour × day network heatmap](docs/images/History-Network-heatmap.png) |
+| Per-process history · every minute aggregated, CSV-exportable | Hour × day traffic heatmap · hover a cell for download / upload / total |
+| ![History window — alert log](docs/images/History-Alert-log.png) | ![Settings window — General](docs/images/Setting-General.png) |
+| Abnormal-traffic alert log · deduplicated by day, process, direction | Settings · appearance, language, retention and more |
+| ![Settings window — Quota](docs/images/Setting-Quota.png) | ![Settings window — Alerts](docs/images/Setting-Alerts.png) |
+| Quota alerts at 80% / 100% / custom thresholds | Per-process traffic alerts with median + MB floor |
+| ![Settings window — Storage](docs/images/Setting-Storage.png) | ![Settings window — About](docs/images/Setting-About.png) |
+| Retention with daily checkpoint or manual reminder | About pane · version, privacy, project link |
 
 ## Install
 

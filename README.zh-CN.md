@@ -18,26 +18,37 @@ FlowTrace 是 [iTraffic](https://github.com/foamzou/ITraffic-monitor-for-mac) �
 
 发布包用自签名证书签名（**当前签名身份是 `Dawson`**）、**未经公证**，所以 macOS 首次会拦下它。[首次启动](#首次启动) 写了放行步骤。所有功能都在用户态完成；没有 System Extension，没有 NetworkExtension，没有额外的 entitlements。
 
-## 继承了什么
+## 功能介绍
 
-- `/usr/bin/nettop` 直接从 Swift 驱动，沿用 [上游那两个不起眼的兜底](https://github.com/foamzou/ITraffic-monitor-for-mac/blob/main/ITrafficMonitorForMac/Service/NettopRunner.swift)（TTY
-  包装 + 保留 stdin pipe）。
-- popover 显示按进程的上传/下载，菜单栏显示总速率。
-- 1 秒采样 / delta 模式 / 丢弃首帧规则。
-- 「点击时才发一次网络请求」规则 —— 不过本 fork **根本不发**任何网络请求。这也是它没有自动更新器的原因，见[更新](#更新)。
+FlowTrace 是一款菜单栏网络流量监控工具。速率数据来自 `/usr/bin/nettop`，每秒钟采样一次，落本地 SQLite 数据库，并按进程维度汇总到弹窗、设置窗、历史窗与菜单栏状态里。所有功能都在用户态完成 —— 没有 System Extension、没有 NetworkExtension、没有额外的 entitlements，应用自身也不发起任何网络请求。
 
-## 本分支新增了什么
+<p align="center">
+  <img src="docs/images/menubar-popover_zh.png" alt="FlowTrace 菜单栏状态与 popover" width="640">
+</p>
 
-实时列表见 [AGENTS.md](AGENTS.md) 的「Active experiments」段；每个文件的完整参考见
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。在 1.0.0，本分支在之上新增了：
+- **菜单栏状态** —— 速率 ↙/↗ 旁边可选挂今日累计 `D` 与当前配额周期 `P`。应用自身无任何后台活动。
+- **进程列表弹窗** —— 按进程的上传/下载、今日累计与周期累计、6 种排序模式、按名称/PID 搜索（忽略大小写）、同名进程合并，每行实时显示「今日」列。弹窗底部是接口概览条（Wi-Fi / 有线 / 本地直连 / 其他）和最近 2 分钟的速率小曲线图。
+- **独立历史窗口** —— 三栏：应用用量表（按进程、按分钟聚合）、小时 × 天网络热力图（悬停查看下载/上传/总量）、异常流量示警日志。三栏共用本地数据库，三栏都能导出 CSV。
+- **接口维度** —— 第二个独立 nettop 以 socket 模式运行，把外部流量切成 Wi-Fi / 有线 / 本地直连 / 其他，弹窗底部以堆叠条形式展示。
+- **配额示警** —— 80% / 100% / 自定义阈值的本地通知，按月/周/日分组，阈值与周期双重去重。
+- **进程流量示警** —— 当日流量同时满足「超过该进程 7 日日中位数 × 倍数」与「绝对 MB 下限」时触发；按本地日 + 进程 + 方向去重（SQLite 唯一索引，重启天然保持不重发）。
+- **保留期与每日检查点** —— 可配置保留窗口与每日检查时间。清理方式可选自动删除，或本地通知提醒手动清理。修改任一存储设置都会立即重查保留期（否则「检查点跑完后才改小保留天数」会静默等到第二天）。
+- **外观跟随系统/浅色/深色** —— 弹窗窗口也强制同步，避免缓存窗口与所选外观不一致。
+- **强调色** —— 跟随系统，或填入自定义 `#RRGGBB`。自定义模式着色到 AppKit 无法着色的手绘控件（日期/时间选择器、强调色下拉、文本框）；「跟随系统」保留原生焦点环与日历弹窗。
+- **21 种语言** —— 运行时切换；数值与日期跟随 locale 格式化（德语小数点等）。
 
-- **进程列表** —— 按名称或 PID 搜索，6 种排序模式，同名进程合并，每行实时显示「今日」列。
-- **历史** —— SQLite 落盘的帧历史（重启不丢），藏在 popover 小曲线图后面；外加一个独立窗口，
-  含应用用量表、小时×天网络热力图、异常流量告警日志，每项都能导出 CSV。
-- **接口维度** —— 第二个独立的 `nettop`（socket 模式），把外部流量切成 Wi-Fi / Wired /
-  Local Direct / Other 四桶。
-- **用量** —— 菜单栏的周期总量、配额阈值告警、按进程的异常流量告警。
-- **设置窗口** —— 保留与清理、配额、告警、外观、强调色、21 种语言，全部运行时应用。
+### 截图
+
+| | |
+|---|---|
+| ![历史窗口 —— 应用用量表](docs/images/History-Process-stats_zh.png) | ![历史窗口 —— 小时×天网络热力图](docs/images/History-Network-heatmap_zh.png) |
+| 进程历史 · 按分钟聚合，可导出 CSV | 小时×天流量热力图 · 悬停查看下载/上传/总量 |
+| ![历史窗口 —— 示警日志](docs/images/History-Alert-log_zh.png) | ![设置窗口 —— 通用](docs/images/Setting-General_zh.png) |
+| 异常流量示警日志 · 按日、进程、方向去重 | 设置 · 外观、语言、保留期等 |
+| ![设置窗口 —— 配额](docs/images/Setting-Quota_zh.png) | ![设置窗口 —— 告警](docs/images/Setting-Alerts_zh.png) |
+| 配额示警：80% / 100% / 自定义阈值 | 进程流量告警：中位数 × 倍数 + 绝对 MB 下限 |
+| ![设置窗口 —— 存储](docs/images/Setting-Storage_zh.png) | ![设置窗口 —— 关于](docs/images/Setting-About_zh.png) |
+| 保留期 · 每日检查点或手动提醒 | 关于页 · 版本、隐私、项目链接 |
 
 ## 安装
 
