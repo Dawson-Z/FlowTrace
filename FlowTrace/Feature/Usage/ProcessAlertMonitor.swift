@@ -153,38 +153,43 @@ final class ProcessAlertMonitor {
 
     private func fire(persistence: HistoryPersistence, day: Int, nameKey: String,
                       direction: String, todayBytes: Int, baselineBytes: Int, multiplier: Double) {
-        // Deliver *before* writing the dedup row.
-        //
-        // The `process_alert` row is the storage-level "already alerted today"
-        // marker (see the class comment). Writing it first would mean a refused
-        // delivery still silences this process for the rest of the day — the
-        // user is never told and never retried. So the row is written only once
-        // the system has actually accepted the notification.
         let alertKey = "\(nameKey):\(direction)"
         if let next = retryAfter[alertKey], Date() < next { return }
 
-        postNotification(nameKey: nameKey, isIn: direction == "in",
-                         todayBytes: todayBytes, baselineBytes: baselineBytes) { [weak self] delivered in
-            guard let self else { return }
-            guard delivered else {
-                self.retryAfter[alertKey] = Date().addingTimeInterval(Self.failedAttemptBackoff)
-                return
-            }
-            self.retryAfter[alertKey] = nil
-            let row = ProcessAlertRow(
-                day: day,
-                name: nameKey,
-                nameKey: nameKey,
-                direction: direction,
-                todayBytes: todayBytes,
-                baselineBytes: baselineBytes,
-                multiplier: multiplier,
-                ts: Int64(Date().timeIntervalSince1970 * 1000)
-            )
-            persistence.appendProcessAlert(row) { _ in
-                // `inserted == false` means another writer got there first
-                // between our check and now; the notification is already out,
-                // so there is nothing further to do.
+        // Notification-level dedup, checked BEFORE delivering. The
+        // `process_alert` row is the day-long "already alerted" marker, but
+        // the INSERT OR IGNORE below only keeps the *table* clean — without
+        // this pre-check every 60 s check re-fired the banner while
+        // decide() stayed true (verified live 2026-10-09: `curl in` fired
+        // four times in one day). Query first; deliver; then write the row.
+        // (Deliver *before* the write so a refused delivery never silences
+        // the process for the day — the write only happens once the system
+        // has accepted the notification.)
+        persistence.hasProcessAlert(day: day, nameKey: nameKey, direction: direction) { [weak self] exists in
+            guard let self, !exists else { return }
+
+            self.postNotification(nameKey: nameKey, isIn: direction == "in",
+                                  todayBytes: todayBytes, baselineBytes: baselineBytes) { delivered in
+                guard delivered else {
+                    self.retryAfter[alertKey] = Date().addingTimeInterval(Self.failedAttemptBackoff)
+                    return
+                }
+                self.retryAfter[alertKey] = nil
+                let row = ProcessAlertRow(
+                    day: day,
+                    name: nameKey,
+                    nameKey: nameKey,
+                    direction: direction,
+                    todayBytes: todayBytes,
+                    baselineBytes: baselineBytes,
+                    multiplier: multiplier,
+                    ts: Int64(Date().timeIntervalSince1970 * 1000)
+                )
+                persistence.appendProcessAlert(row) { _ in
+                    // `inserted == false` means another writer got there first
+                    // between our check and now; the notification is already out,
+                    // so there is nothing further to do.
+                }
             }
         }
     }
@@ -211,6 +216,9 @@ final class ProcessAlertMonitor {
         }
         content.body = body
         content.sound = .default
+        // Body click → history window, alert-log tab (routed by the app
+        // delegate's didReceive handler).
+        content.userInfo = [LocalNotification.routeKey: LocalNotification.Route.historyAlerts]
         let request = UNNotificationRequest(
             identifier: "process-alert-\(currentDay)-\(nameKey)-\(isIn ? "in" : "out")",
             content: content,

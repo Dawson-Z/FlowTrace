@@ -44,12 +44,12 @@ struct SettingsGeneralPane: View {
     ]
 
     private let sortModeOptions: [(label: String, raw: String)] = [
-        ("Name",          "name"),
-        ("Live download", "download"),
-        ("Live upload",   "upload"),
-        ("Down today",    "cumulativeDownload"),
-        ("Up today",      "cumulativeUpload"),
-        ("Total today",   "cumulativeTotal"),
+        ("Name",     "name"),
+        ("Live ↓",   "download"),
+        ("Live ↑",   "upload"),
+        ("Today ↓",  "cumulativeDownload"),
+        ("Today ↑",  "cumulativeUpload"),
+        ("Today ∑",  "cumulativeTotal"),
     ]
 
     var body: some View {
@@ -60,27 +60,85 @@ struct SettingsGeneralPane: View {
 
             Divider()
 
-            // Menu-bar visibility
-            SettingsRow(label: "Show download") {
-                SettingsSwitch(isOn: $settings.showDownloadInStatusBar)
+            // Menu-bar visibility. A section caption names the group so the
+            // row labels below can stay short ("Download ↙", not "Show
+            // download in the menu bar ↙"). The rows sit one size below the
+            // caption and indent under it — a Group-level font, which the
+            // (font-unspecified) row labels inherit; the switch controls and
+            // the footnote note are untouched by it.
+            SettingsSectionTitle(text: "Menu bar display")
+            Group {
+                // The logo is the never-empty fallback: while every other
+                // segment is off it is forced on and the toggle is disabled —
+                // the user cannot switch off the last thing that identifies
+                // the item.
+                let forceLogo = !(settings.showDownloadInStatusBar
+                    || settings.showUploadInStatusBar
+                    || settings.showTodayInMenuBar
+                    || settings.showPeriodInMenuBar)
+                SettingsRow(label: "Logo") {
+                    SettingsSwitch(isOn: Binding(
+                        get: { forceLogo ? true : settings.showLogoInMenuBar },
+                        set: { settings.showLogoInMenuBar = $0 }
+                    ))
+                    .disabled(forceLogo)
+                }
+                SettingsRow(label: "Download ↙") {
+                    SettingsSwitch(isOn: $settings.showDownloadInStatusBar)
+                }
+                SettingsRow(label: "Upload ↗") {
+                    SettingsSwitch(isOn: $settings.showUploadInStatusBar)
+                }
+                SettingsRow(label: "Today total D") {
+                    SettingsSwitch(isOn: $settings.showTodayInMenuBar)
+                }
+                SettingsRow(label: "Period total P") {
+                    SettingsSwitch(isOn: $settings.showPeriodInMenuBar)
+                }
+                // P is not always "this month": its window is the quota period.
+                // That used to live in a code comment only — surface it, because
+                // the caption above no longer spells out what D/P mean.
+                SettingsNote(text: "Period total P follows the quota period in Settings ▸ Quota.")
             }
-            SettingsRow(label: "Show upload") {
-                SettingsSwitch(isOn: $settings.showUploadInStatusBar)
+            .font(.subheadline)
+            .padding(.leading, 12)
+
+            Divider()
+
+            // Popover visibility: which modules the popover window renders.
+            // The default sort lives here too — it configures the same
+            // window's process list. Row labels reuse the on-canvas keys
+            // ("last 2 min" / "today peak" / "Today ∑" / "Open history
+            // statistics") so each switch names exactly what it toggles.
+            SettingsSectionTitle(text: "Popover display")
+            Group {
+                SettingsRow(label: "Process default sort") {
+                    AccentPicker(
+                        options: sortModeOptions.map { (label: Loc.l($0.label), value: $0.raw) },
+                        selection: $settings.defaultSortModeRaw
+                    )
+                }
+                SettingsRow(label: "Process list") {
+                    SettingsSwitch(isOn: $settings.showProcessListInPopover)
+                }
+                SettingsRow(label: "Network interfaces") {
+                    SettingsSwitch(isOn: $settings.showInterfacesInPopover)
+                }
+                SettingsRow(label: "Last 2 min") {
+                    SettingsSwitch(isOn: $settings.showSparklineInPopover)
+                }
+                SettingsRow(label: "Today peak") {
+                    SettingsSwitch(isOn: $settings.showTodayPeakInPopover)
+                }
+                SettingsRow(label: "Today ∑") {
+                    SettingsSwitch(isOn: $settings.showTodayTotalInPopover)
+                }
+                SettingsRow(label: "Open history statistics") {
+                    SettingsSwitch(isOn: $settings.showHistoryEntryInPopover)
+                }
             }
-            SettingsRow(label: "Show today total") {
-                SettingsSwitch(isOn: $settings.showTodayInMenuBar)
-            }
-            // The period this total covers is the quota one (Settings ▸ Quota),
-            // so the label names the period rather than a fixed month.
-            SettingsRow(label: "Show period total") {
-                SettingsSwitch(isOn: $settings.showPeriodInMenuBar)
-            }
-            SettingsRow(label: "Process default sort") {
-                AccentPicker(
-                    options: sortModeOptions.map { (label: Loc.l($0.label), value: $0.raw) },
-                    selection: $settings.defaultSortModeRaw
-                )
-            }
+            .font(.subheadline)
+            .padding(.leading, 12)
 
             Divider()
 

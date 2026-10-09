@@ -170,9 +170,9 @@ Each has a different table coverage. Do not unify them.
 
 | Path | When | Coverage |
 | --- | --- | --- |
-| `prune()` | Once in `init`. | `history`, `interface_history`, `process_usage`, `interface_minute`. **Not** `process_alert`. |
+| ~~`prune()`~~ (removed 2026-10-09) | was once in `init`. | Deleted `history`, `interface_history`, `process_usage`, `interface_minute` by `retentionSeconds` regardless of the cleanup mode — silent data loss in "notify before manual cleanup" mode. Retention deletion belongs to `DataRetentionController` alone (automatic mode deletes at the daily checkpoint; manual-notification never deletes). |
 | `pruneExpired(cutoffMs:cutoffBucket:)` / `expiredRowCount(...)` | Daily checkpoint (`DataRetentionController`). | `history`, `interface_history`, `process_alert` (by `ts`); `process_usage`, `interface_minute` (by `minute_bucket`). |
-| `deleteRange(fromMs:toMs:fromBucket:toBucket:)` / `countRange(...)` | User "Clear range" from Settings → Storage. | Four tables, no `process_alert` (the alert log is not cleared by range). |
+| `deleteRange(fromMs:toMs:fromBucket:toBucket:)` / `countRange(...)` | User "Clear all" / "Clear range" from Settings → Storage. | Five tables including `process_alert` (since 2026-10-09 — same scope as `expiredRowCount`, so what the reminder counts the cleanup can clear; clearing the alert log also clears the same-day dedup state). |
 
 `clearAllTables` (clears every row from every table) was removed
 when the Settings UI stopped calling it; the same effect is now
@@ -210,6 +210,13 @@ The launch path overrides it with the user's setting:
 let retention = TimeInterval(SettingsStore.shared.historyRetentionDays) * 24 * 3600
 HistoryPersistence(dbURL: .defaultDbURL(), retentionSeconds: retention)
 ```
+
+`retentionSeconds` is construction-time metadata only since 2026-10-09:
+the persistence layer does **not** enforce it (the old init-time prune
+ignored the cleanup mode and silently deleted overdue data on every
+launch). Enforcement lives in `DataRetentionController` — automatic
+mode deletes at the daily checkpoint; manual-notification mode never
+deletes, it only reminds.
 
 Settings → Storage allows 1 to ~36500 days (≈100 years). The
 current default in `SettingsStore` is 30.

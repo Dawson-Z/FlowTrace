@@ -134,6 +134,9 @@ final class DataRetentionController {
             count, retentionDays
         )
         content.sound = .default
+        // Body click → settings window, storage pane (routed by the app
+        // delegate's didReceive handler).
+        content.userInfo = [LocalNotification.routeKey: LocalNotification.Route.settingsStorage]
         let request = UNNotificationRequest(
             identifier: "data-retention-reminder",
             content: content,

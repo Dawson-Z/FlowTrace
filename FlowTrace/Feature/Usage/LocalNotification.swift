@@ -28,6 +28,55 @@ typealias NotificationDelivery = (UNNotificationRequest, @escaping (Bool) -> Voi
 
 enum LocalNotification {
 
+    // MARK: - Click routing + actions (spec: .trellis/tasks/09-28-notification-interactions)
+
+    /// `userInfo` key carrying the click-destination route. Body clicks are
+    /// answered in the app delegate's `didReceive`; the value selects which
+    /// window/tab to open.
+    static let routeKey = "route"
+
+    /// Route values. One per notification family:
+    /// - process alert → history window, alert-log tab
+    /// - quota threshold → settings window, quota pane
+    /// - retention reminder → settings window, storage pane
+    enum Route {
+        static let historyAlerts = "history-alerts"
+        static let settingsQuota = "settings-quota"
+        static let settingsStorage = "settings-storage"
+    }
+
+    /// Category carrying the three quota-100% actions. Registered once at
+    /// launch (and re-registered on locale change — action titles are frozen
+    /// into the category at registration time).
+    static let quota100CategoryID = "QUOTA_100"
+
+    /// Action identifiers inside `quota100CategoryID`. The body click keeps
+    /// the system's `UNNotificationDefaultActionIdentifier` and only
+    /// navigates; dismiss changes no state (the spec's growth-based re-fire
+    /// does not need to observe it).
+    enum Quota100Action {
+        static let acknowledge = "ACKNOWLEDGE"
+        static let mute1Hour = "MUTE_1H"
+        static let muteToday = "MUTE_TODAY"
+    }
+
+    /// (Re-)register the notification categories. Idempotent; called at
+    /// launch and on locale change so the frozen action titles follow the
+    /// chosen language.
+    static func registerCategories() {
+        let acknowledge = UNNotificationAction(identifier: Quota100Action.acknowledge,
+                                               title: Loc.l("Acknowledge"), options: [])
+        let mute1Hour = UNNotificationAction(identifier: Quota100Action.mute1Hour,
+                                             title: Loc.l("Mute for 1 hour"), options: [])
+        let muteToday = UNNotificationAction(identifier: Quota100Action.muteToday,
+                                             title: Loc.l("Mute today"), options: [])
+        let quota100 = UNNotificationCategory(identifier: quota100CategoryID,
+                                              actions: [acknowledge, mute1Hour, muteToday],
+                                              intentIdentifiers: [],
+                                              options: [])
+        UNUserNotificationCenter.current().setNotificationCategories([quota100])
+    }
+
     /// Statuses under which the system will actually present a request.
     /// `notDetermined` and `denied` both mean the request would be dropped
     /// without any error surfacing to the caller.

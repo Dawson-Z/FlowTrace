@@ -173,9 +173,11 @@ final class HistoryPersistenceTests: XCTestCase {
         XCTAssertEqual(seen["Wired"]?.out, 25)
     }
 
-    // G7: prune() 启动期按 retentionSeconds 清历史表，process_alert 不参与
-    func testPruneAtInitDoesNotTouchAlerts() throws {
-        // retentionSeconds 设为 1：所有帧都过期
+    // G7: 重开不触发任何启动期删除——保留期策略唯一归属 DataRetentionController
+    // （自动模式每日检查点才删；手动提醒模式绝不删。2026-10-09 移除 init prune 之前，
+    //   每次启动都会无视清理模式、静默删掉保留窗口外的全部数据。）
+    func testReopenDoesNotPruneAnyTable() throws {
+        // retentionSeconds 设为 1：所有帧都在窗口外
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("FlowTraceTests-prune-\(UUID().uuidString).sqlite3")
         tempURLs.append(url)
@@ -186,7 +188,8 @@ final class HistoryPersistenceTests: XCTestCase {
         p1.appendInterface([InterfaceHistoryRow(ts: oldMs, category: "Wi-Fi",
                                                 inBytesPerSec: 50, outBytesPerSec: 50)])
         let today = ProcessUsageAggregator.bucket(of: Date())
-        p1.appendProcessUsage([ProcessUsageFlushRow(minuteBucket: today - 10 * 1440,
+        let oldBucket = today - 10 * 1440
+        p1.appendProcessUsage([ProcessUsageFlushRow(minuteBucket: oldBucket,
                                                     name: "old", nameKey: "old",
                                                     inBytes: 1, outBytes: 1)])
         p1.appendProcessAlert(ProcessAlertRow(day: 19000, name: "old", nameKey: "old",
@@ -194,14 +197,20 @@ final class HistoryPersistenceTests: XCTestCase {
                                               multiplier: 0, ts: Int64(Date().timeIntervalSince1970 * 1000))) { _ in }
         // 等待异步写完成
         Thread.sleep(forTimeInterval: 0.5)
-        // 重建库（retentionSeconds=1 触发 prune）
+        // 重建库（retentionSeconds=1 曾在 init 触发 prune；现在必须什么都不删）
         let p2 = HistoryPersistence(dbURL: url, retentionSeconds: 1)!
-        // p2 的 init 已 prune（cutoffMs = now - 1s，旧帧全删）
-        // 但 process_alert 不在 init prune 路径（看源码 line 168-189）
         Thread.sleep(forTimeInterval: 0.1)
+        // history 旧行仍在（旧 init prune 的 ts 分支）
+        XCTAssertTrue(p2.recent(limit: 10).contains { $0.ts == oldMs },
+                      "reopen must not prune history")
+        // process_usage 旧桶仍在（旧 init prune 的 minute-bucket 分支）
+        let totals = waitForCompletion(2.0) {
+            p2.dailyProcessTotals(fromBucket: oldBucket, toBucket: oldBucket + 1440, completion: $0)
+        }
+        XCTAssertNotNil(totals["old"], "reopen must not prune process_usage")
+        // process_alert 仍在（从未参与任何删除路径）
         let records = waitForCompletion(2.0) { p2.alertRecords(completion: $0) }
-        // process_alert 旧行仍在
-        XCTAssertFalse(records.isEmpty, "init prune must NOT delete process_alert")
+        XCTAssertFalse(records.isEmpty, "reopen must not touch process_alert")
     }
 
     // G8: pruneExpired 每日检查点
@@ -233,8 +242,8 @@ final class HistoryPersistenceTests: XCTestCase {
         XCTAssertTrue(records.isEmpty, "pruneExpired should remove old process_alert rows")
     }
 
-    // G9: deleteRange 含 4 表（clearAllTables 不存在）
-    // 改为：deleteRange 跨整时把所有行都删
+    // G9: deleteRange 含 5 表（含 process_alert，2026-10-09 起与提醒计数同口径）
+    // 跨整时把所有行都删
     func testDeleteRangeFullWindow() throws {
         let p = try makePersistence()
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
@@ -250,8 +259,10 @@ final class HistoryPersistenceTests: XCTestCase {
         XCTAssertTrue(p.recent(limit: 100).isEmpty, "deleteRange across full window should clear history")
     }
 
-    // G10: deleteRange 半开区间、不动 process_alert
-    func testDeleteRangeDoesNotTouchAlerts() throws {
+    // G10: deleteRange 半开区间、覆盖 process_alert（2026-10-09 起与提醒计数
+    // expiredRowCount 同口径——提醒把示警记录计入逾期行数，存储页清理必须能清掉它们。
+    // 副作用：清示警记录同时清 (day, name_key, direction) 去重状态，同日同方向可能再告警。）
+    func testDeleteRangeClearsAlerts() throws {
         let p = try makePersistence()
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         let today = ProcessUsageAggregator.bucket(of: Date())
@@ -265,9 +276,9 @@ final class HistoryPersistenceTests: XCTestCase {
                           fromBucket: today - 1440, toBucket: today + 1440, completion: $0)
         }
         Thread.sleep(forTimeInterval: 0.1)
-        // process_alert 应仍在
+        // process_alert 一并清除
         let records = waitForCompletion(2.0) { p.alertRecords(completion: $0) }
-        XCTAssertFalse(records.isEmpty, "deleteRange must NOT touch process_alert (per ARCHITECTURE §5.4)")
+        XCTAssertTrue(records.isEmpty, "deleteRange must clear process_alert (same scope as expiredRowCount)")
     }
 
     // G11: appendProcessAlert UNIQUE 去重

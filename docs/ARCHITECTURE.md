@@ -1,6 +1,6 @@
 # FlowTrace 技术架构与目录说明
 
-> 本文档基于当前工作树（macOS 11.0 部署目标、`xcodebuild test` 206 条全部通过）逐文件梳理。
+> 本文档基于当前工作树（macOS 11.0 部署目标、`xcodebuild test` 220 条全部通过）逐文件梳理。
 > 所有类型名、方法名、SQL 表名均取自真实代码；引用注释处标注原文出处。
 
 ---
@@ -106,8 +106,8 @@ FlowTrace/
 | 文件 | 职责 |
 |---|---|
 | `AppDelegate.swift` | 入口（`@NSApplicationMain`）。启动顺序、菜单栏 `NSStatusItem` 装配、popover 生命周期与深度休眠、设置窗/历史窗的懒创建、通知代理（前台也弹 banner/sound）、通知被拒时的启动引导弹窗（可永久抑制，XCTest 下跳过）、窗口标题的本地化刷新 |
-| `ContentView.swift` | popover 根视图：头部（图标 + 名称 + 设置 + 退出）→ 搜索栏 → 排序表头 → 进程列表 → 接口概览 → 历史 sparkline。含 `ProcessRow` |
-| `StatusBarView.swift` | 菜单栏内容：固定宽度两列 —— 速率列（49pt：↙/↗ + 速率）与总量列（38pt：`D`=今日、`P`=当前配额周期）。宽度常量与 `AppDelegate.statusBarLength` 必须保持一致 |
+| `ContentView.swift` | popover 根视图：头部（图标 + 名称 + **周期配额摘要**（居中）+ 设置 + 退出）→ 搜索栏 → 排序表头 → 进程列表 → 接口概览 → 历史块。头部以下的每个模块都可由 设置 ▸ 通用 ▸「popover显示」独立开关（进程列表开关把搜索栏/表头/行作为一个整体隐藏；历史块在其 4 个子开关全关时整体消失）。含 `ProcessRow` |
+| `StatusBarView.swift` | 菜单栏内容：至多三段 —— Logo（18pt 图标；其余段全关时强制开启的「永不为空」规则）、速率列（49pt：↙/↗ + 速率）、总量列（38pt：`D`=今日、`P`=当前配额周期）——每对相邻段之间有 9pt 的「\|」分隔符。仅显示一个速率行时垂直居中（隐藏行不再占位）。宽度常量与 `AppDelegate.statusBarLength` 的按段累加（分隔符 = 11pt）必须保持一致 |
 | `MenuItem.swift` | 头部的小文本按钮，支持可选 SF Symbol 图标（`icon: String?`，默认 nil）：设置（`gearshape`）与退出（`power`） |
 | `Network.swift` | **帧管线中枢**。`handleFrame` 把一帧喂给 `ProcessUsageAggregator` / `UsageAggregator.tick` / `ProcessAlertMonitor`，再在主队列写 `HistoryStore`、`StatusDataModel`、`ListViewModel`。含 `parser`（唯一归一化点）与 `tryToMakeAppSleepDeep`（30 帧无交互后释放 popover controller） |
 | `Store.swift` | `enum SharedStore`：全部单例 + `attachHistoryPersistence(_:)` + `View.withGlobalEnvironmentObjects()` |
@@ -142,7 +142,7 @@ FlowTrace/
 |---|---|
 | `RingBuffer.swift` | 泛型定长环形缓冲，预分配数组，append O(1) 不分配 |
 | `HistoryStore.swift` | popover sparkline 的数据源。`capacity = 60`；`samples: [HistoryFrame]` + `summary: HistorySummary`（今日峰值 / 24h 均值 / 今日累计）；`bootstrap()` 从磁盘回填最近 60 帧（重启后曲线不空）；`append` 同时发布内存快照并落库 |
-| `HistoryView.swift` | popover 底部 60 采样 sparkline（上下两条 `Path`：in 在基线之上、out 在下）+ 峰值/均值 + 打开历史窗按钮 |
+| `HistoryView.swift` | popover 底部历史块：60 采样 sparkline（上下两条 `Path`：in 在基线之上、out 在下）+「最近 2 分钟」标注行 + 今日峰值/今日∑ 数字行 + 打开历史窗按钮——每个子模块按 设置 ▸ 通用 ▸「popover显示」独立隐藏（峰值与 ∑ 同开时共占一行） |
 | `HistoryWindowView.swift` | 历史窗口根视图，三个 tab：`appUsage`（默认）/ `heatmap` / `alerts`；`.appAccentScope` 在此应用；窗口 `minWidth 680 / minHeight 560` |
 | `AppUsageView.swift` | 「App usage」页：范围内每进程累计 ↓/↑/合计，可排序、可导出 CSV |
 | `ProcessUsageModel.swift` | 上述页面的 VM：`HeatmapRange` 范围 + `rangeBuckets` 本地分钟桶换算 + 排序 |
@@ -193,7 +193,7 @@ FlowTrace/
 
 | 文件 | 职责 |
 |---|---|
-| `SettingsStore.swift` | `ObservableObject` over `UserDefaults.standard`，20 个持久化 key 集中定义（见第 6 节）。含一次性 key 重命名（`showMonthInMenuBar`→`showPeriodInMenuBar`）。`applyAppearance()` 把外观映射到 `NSApp.appearance` 并额外钉住被缓存的 popover 窗口 |
+| `SettingsStore.swift` | `ObservableObject` over `UserDefaults.standard`，27 个持久化 key 集中定义（见第 6 节）。含一次性 key 重命名（`showMonthInMenuBar`→`showPeriodInMenuBar`）。`applyAppearance()` 把外观映射到 `NSApp.appearance` 并额外钉住被缓存的 popover 窗口 |
 | `SettingsView.swift` | `SettingsTab`（`general / quota / alerts / storage / about`）、`SettingsMetrics`（`width 480 / padding 20 / tabBarHeight 66 / controlWidth 200`）、`SettingsTabSelection`、`SettingsRootView`、手绘 `SettingsTabBar` / `SettingsTabButton`、`SettingsPanes`（按 tab 分发到下面的 pane 文件） |
 | `SettingsComponents.swift` | 跨 pane 共用的构件：`SettingsPane`（每个 pane 是独立 SwiftUI root，**必须各自 `.appAccentScope`**）、`SettingsRow` / `SettingsNote` / `SettingsSwitch`、`EditableNumberField`、`AccentTimeField`、`NotificationPermissionWarning`（配额/示警/存储（提醒模式）pane 在「通知能力启用但系统通知不可用」时的橙色内嵌提示：`denied` → 打开系统设置，`notDetermined` → 直接申请） |
 | `Settings{General,Quota,Alerts,Storage,About}Pane.swift` | 每个 `SettingsTab` 一个文件。这些 pane 原先是 `SettingsView.swift` 内部的 private 类型，随文件拆分提升为 internal |
@@ -206,13 +206,13 @@ FlowTrace/
 | 文件 | 职责 |
 |---|---|
 | `UsageAggregator.swift` | 周期用量积分器：`UsageBytes`（in/out/total）+ `today/week/month` + `bytes(forPeriod:)`。`tick()` 由帧路径调用、内部节流（默认 2s）。菜单栏 `P` 段与 `QuotaMonitor` 共用此单一口径 |
-| `LocalNotification.swift` | **本地通知的唯一投递口**。`NotificationDelivery` 类型别名是注入缝（`QuotaMonitor` / `ProcessAlertMonitor` / `DataRetentionController` 都接收一个），`LocalNotification.deliver` 是生产实现：**先查 `getNotificationSettings().authorizationStatus`，再 `add`**。之所以不能只看 `add` 的 error——未授权时 `add` 也返回 `error == nil`（实测），把「用户根本收不到」误判成投递成功。回调统一切到主队列。同文件还有 `NotificationPermissionModel`：可观察的授权状态（`refresh()` / `request()`），供设置页的内嵌警告使用。 |
-| `QuotaMonitor.swift` | 配额阈值监视：订阅 `aggregator.$today/$week/$month`，阈值集合 `{80, 100, 自定义}`；跨越检测 `prev < t && current >= t`（已提取为静态纯函数 `shouldFire(...)` 以便单测）；去重 key `"<周期起始日>:<阈值>"` 存 UserDefaults `quotaFiredKeys`，周期滚动后自动重置。含 `ByteFormatter`。<br>**投递语义**：fired key 只在**投递成功后**才写；被拒时按 15 分钟退避重试（内存态，重启即重试），因此用户之后放开权限时能补上通知。<br>**必须在启动时调用 `bootstrap()`**：`SharedStore.quotaMonitor` 是惰性 `static let`，不触碰就永不 `init`、永不订阅，配额会静默失效（`AppDelegate.applicationDidFinishLaunching` 负责调用）。 |
-| `ProcessAlertMonitor.swift` | 按进程的异常流量告警：方向独立，需同时满足「今日累计 ≥ 绝对下限（MB）」与「超过该进程 7 日日中位数 × 倍数」；基线为 0 视为「任何流量都异常」。**每进程每方向每自然日最多一条**，去重由 `process_alert` 表的唯一索引 `(day, name_key, direction)` 承担（重启也天然保持）。`decide(...)` 为纯函数。<br>**投递语义**：**先投递、成功后才写去重行**——反过来（原实现）会让「投递被拒」也记上「今日已告警」，用户既没被通知也永不重试。被拒时同样 15 分钟退避重试。 |
+| `LocalNotification.swift` | **本地通知的唯一投递口**。`NotificationDelivery` 类型别名是注入缝（`QuotaMonitor` / `ProcessAlertMonitor` / `DataRetentionController` 都接收一个），`LocalNotification.deliver` 是生产实现：**先查 `getNotificationSettings().authorizationStatus`，再 `add`**。之所以不能只看 `add` 的 error——未授权时 `add` 也返回 `error == nil`（实测），把「用户根本收不到」误判成投递成功。回调统一切到主队列。同文件还有：`NotificationPermissionModel`（可观察的授权状态，供设置页的内嵌警告使用）；点击路由常量（`routeKey` + 三个 `Route` 目的地）与配额 100% 动作 category `QUOTA_100` 的注册（启动与语言切换时各注册一次，动作标题在注册时冻结）。 |
+| `QuotaMonitor.swift` | 配额阈值监视：订阅 `aggregator.$today/$week/$month`，阈值集合 `{80, 100, 自定义}`；跨越检测 `prev < t && current >= t`（已提取为静态纯函数 `shouldFire(...)` 以便单测）；去重 key `"<周期起始日>:<阈值>"` 存 UserDefaults `quotaFiredKeys`，周期滚动后自动重置。含 `ByteFormatter`。<br>**投递语义**：fired key 只在**投递成功后**才写；被拒时按 15 分钟退避重试（内存态，重启即重试），因此用户之后放开权限时能补上通知。<br>**必须在启动时调用 `bootstrap()`**：`SharedStore.quotaMonitor` 是惰性 `static let`，不触碰就永不 `init`、永不订阅，配额会静默失效（`AppDelegate.applicationDidFinishLaunching` 负责调用）。<br>**100% 档的增长重发（2026-10）**：80%/自定义保持每周期一次；100% 额外走增长分支——跨越送达后落持久化基线（`quota100NotifiedPeriod/Bytes`，按周期 key 存），此后满足 `shouldRefire100(...)`（≥100%、未静音、较基线增长 ≥ `limitBytes/100`）即重发并推进基线。三个动作（已知/1小时/今天）由 `handleQuota100Action` 写账本：已知 = 基线移到当前；1 小时静音内存态；今日静音持久化 `quota100MutedDay`。`resetFiredKeys()` 一并清空 100% 状态。通知携带 category `QUOTA_100` 与 `userInfo["route"]`（点击跳设置配额页，路由由 AppDelegate 的 `didReceive` 处理）。 |
+| `ProcessAlertMonitor.swift` | 按进程的异常流量告警：方向独立，需同时满足「今日累计 ≥ 绝对下限（MB）」与「超过该进程 7 日日中位数 × 倍数」；基线为 0 视为「任何流量都异常」。**每进程每方向每自然日最多一条**，去重由 `process_alert` 表的唯一索引 `(day, name_key, direction)` 承担（重启也天然保持）。`decide(...)` 为纯函数。<br>**投递语义**：投递前先 `hasProcessAlert(...)` 预查当天名额——唯一索引只保表干净，`INSERT OR IGNORE` 被忽略时拦不住通知本身，60 秒评估持续成立就会重发（2026-10 实测：同日同方向曾连发 4 条后修复）。预查通过后**先投递、成功后才写去重行**——反过来会让「投递被拒」也记上「今日已告警」，用户既没被通知也永不重试。被拒时同样 15 分钟退避重试。 |
 
 ### 4.4 `FlowTraceTests/`
 
-22 个测试文件，206 条用例（2026-09）。全部走真实依赖、注入隔离，只是不隔离宿主进程：
+22 个测试文件，220 条用例（2026-10）。全部走真实依赖、注入隔离，只是不隔离宿主进程：
 
 | 文件 | 覆盖内容 |
 |---|---|
@@ -310,9 +310,9 @@ Trellis agents（`agents/implement.md`、`agents/check.md`）已重写，明确�
 
 | 触发 | 方法 | 覆盖表 |
 |---|---|---|
-| 启动时一次 | `prune()`（按 `retentionSeconds`） | `history`、`interface_history`、`process_usage`、`interface_minute`（**不含** `process_alert`） |
+| ~~启动时一次~~（2026-10-09 移除） | ~~`prune()`~~ | 曾按 `retentionSeconds` 无视清理模式删 4 张数据表——「通知提醒手动清理」模式下也静默删数据，与「只提醒、由用户决定」的语义冲突（运行时验证发现：一次启动删掉 2 万行）。保留期的删除现在**只**发生在每日检查点 |
 | 每日检查点（自动模式） | `pruneExpired(cutoffMs:cutoffBucket:)` / `expiredRowCount(...)` | `ts` 组：`history`、`interface_history`、`process_alert`；桶组：`process_usage`、`interface_minute` |
-| 用户手动 | `clearAllTables(completion:)`（5 表），`deleteRange(fromMs:toMs:fromBucket:toBucket:)` / `countRange(...)`（4 表） | 见左 |
+| 用户手动 | `deleteRange(fromMs:toMs:fromBucket:toBucket:)` / `countRange(...)`（**5 表**，2026-10-09 起含 `process_alert`——与提醒的 `expiredRowCount` 同口径：提醒计入示警行，清理就必须清得掉；清示警记录会同时清掉同日去重状态） | 见左 |
 
 默认保留期 7 天，实际值由 `SettingsStore.historyRetentionDays`（默认 30）在启动时传入。
 
@@ -336,7 +336,7 @@ Trellis agents（`agents/implement.md`、`agents/check.md`）已重写，明确�
 
 ## 6. 配置项：`SettingsStore`
 
-存储于 `UserDefaults.standard`（可用 `defaults read local.FlowTrace` 直接查看）。20 个 key：
+存储于 `UserDefaults.standard`（可用 `defaults read local.FlowTrace` 直接查看）。27 个 key：
 
 | key | 属性 | 默认值 | 说明 |
 |---|---|---|---|
@@ -355,6 +355,13 @@ Trellis agents（`agents/implement.md`、`agents/check.md`）已重写，明确�
 | `quotaCustomPercent` | 同名 | `0` | 0 表示不启用自定义阈值（80/100 恒开） |
 | `showTodayInMenuBar` | 同名 | `false` | 菜单栏 `D` 段 |
 | `showPeriodInMenuBar` | 同名 | `false` | 菜单栏 `P` 段 |
+| `showLogoInMenuBar` | 同名 | `false` | 菜单栏 Logo 段（其余段全关时强制开、开关禁用） |
+| `showProcessListInPopover` | 同名 | `true` | popover 进程列表（含搜索栏与表头） |
+| `showInterfacesInPopover` | 同名 | `true` | popover 接口概览 |
+| `showSparklineInPopover` | 同名 | `true` | popover 最近 2 分钟曲线 |
+| `showTodayPeakInPopover` | 同名 | `true` | popover 今日峰值行 |
+| `showTodayTotalInPopover` | 同名 | `true` | popover 今日∑行 |
+| `showHistoryEntryInPopover` | 同名 | `true` | popover「打开历史统计」按钮 |
 | `uploadAlertEnabled` | 同名 | `false` | |
 | `alertDownloadMultiplier` | 同名 | `10` | |
 | `alertUploadMultiplier` | 同名 | `10` | |
@@ -365,6 +372,7 @@ Trellis agents（`agents/implement.md`、`agents/check.md`）已重写，明确�
 
 - `ft.accent.source` / `ft.accent.hex` —— `AccentColorManager`
 - `quotaFiredKeys` —— `QuotaMonitor` 直接读写
+- `quota100NotifiedPeriod` / `quota100NotifiedBytes` / `quota100MutedDay` —— `QuotaMonitor`（100% 增长重发基线与今日静音）
 - `notificationLaunchReminderSuppressed` —— `AppDelegate`（通知被拒时启动引导弹窗的「不再提醒」）
 - 非持久化：`refreshInterval` 是 `let = 1`（固定 1s，UI 已取消该选项）
 

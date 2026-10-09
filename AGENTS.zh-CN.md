@@ -86,9 +86,10 @@ xcodebuild build -project FlowTrace.xcodeproj \
 ```
 
 单元测试位于 `FlowTraceTests/`，用 `xcodebuild test -project FlowTrace.xcodeproj -scheme
-FlowTrace -configuration Debug` 跑（1.0.0 时为 205 个用例）。覆盖进程列表的比较器与合并、帧解析器、
-配额跨越判定、进程告警判定、接口分类器、两个 SQLite 管道（每进程用量、interface 热力图）、
-只读查询面、设置存储、强调色解析、21 种语言的字符串表，以及本地通知的投递契约。
+FlowTrace -configuration Debug` 跑（2026-10 时为 220 个用例）。覆盖进程列表的比较器与合并、帧解析器、
+配额跨越判定（含 100% 增长重发与静音）、进程告警判定、接口分类器、两个 SQLite 管道（每进程用量、
+interface 热力图）、只读查询面、设置存储、强调色解析、21 种语言的字符串表（含严格 key-parity 测试），
+以及本地通知的投递契约。
 
 真实依赖是**注入**而非 mock：`SettingsStore(defaults:)`、`QuotaMonitor(settings:aggregator:defaults:)`、
 `ProcessAlertMonitor(settings:deliver:)`、`HistoryPersistence(dbURL:retentionSeconds:)` 都把协作者作为
@@ -465,13 +466,68 @@ codesign --force --sign <身份哈希> /tmp/probe
   AppKit 在 `show` 时按声明的 `contentSize` 做屏幕钳制，而它还是 340，SwiftUI 内容却钉死 540 宽 ——
   定位之后窗口向右生长，超出部分就在屏幕外了。修复：声明真实宽度（`contentSize` 540×520），并在
   `AppDelegate.togglePopover` 的 show 之后加一道钳制，把最终 frame 拉回 `screen.visibleFrame` 内
-  （左缘同样有守卫）。触及 `AppDelegate.swift`。
+  （左缘同样有守卫）。触及 `AppDelegate.swift`。*（宽度后收窄至 440——规则不变：
+  `contentSize` 必须始终与 `ContentView.frame(width:)` 一致。）*
+
+- **弹窗头部配额摘要（2026-10）。** 头部应用名后紧跟周期配额摘要：配额开启时显示
+  "2.1G / 5.0G · 剩 23 天"，关闭时仅显示周期用量。字节用进程列表同款紧凑格式（加 `0B`
+  特例——其 "—" 表示「无数据」，对新周期为 0 的场景是错语义）；GB 换算（1024³）与周期
+  边界刻意复用 `QuotaMonitor` 的（`config()` / 新增 static
+  `daysRemainingInPeriod(period:now:calendar:)`，已单测），头部与监视器永不打架。
+  等宽 11 pt 次要色，`lineLimit(1)` + `minimumScaleFactor(0.7)` 兜长翻译。
+  触及上游 `ContentView.swift`；新 key `"%ld days left"` 已进全部 21 表。
+
+- **菜单栏 Logo 段与强制显示规则（2026-10）。** 新增 `showLogoInMenuBar` 段（「菜单栏显示」组
+  首行「Logo」）。规则：其余四段全关时 Logo **强制开启且开关禁用**（`forceLogo` binding +
+  `.disabled`）——菜单栏 item 永不沦为无法辨认的空槽；任一段可见时开关自由（默认关）。
+  `statusBarLength` 按段累加（logo 18、速率 49、累积 38；每对相邻段之间一个 11pt 的「|」
+  分隔符段——logo|速率、速率|累积、以及速率关时的 logo|累积）。宽度刷新 sink 监听全部五个开关——Combine 的 `combineLatest` 最多四路，需 4+1 嵌套
+  （直接五路会报 "cannot infer type of closure parameter" 编译错）。同次改动的教训：往
+  `SettingsStore.init` 插入新的 `dropFirst().sink{}` 链时，后一条链的 `.store(in:)` 必须留在
+  它自己的 publisher 上——插入一度让 `showPeriodInMenuBar` 丢了 store、持久化静默失效
+  （round-trip 测试抓住）。设置 → 通用同时加了 `SettingsSectionTitle` 区块标题（「菜单栏显示」）、
+  缩短后的行标签（`Download ↙` 等，新 key 进全部 21 表）及「P 跟随配额周期」说明。
+  触及上游 `StatusBarView.swift`、`AppDelegate.swift`。
+
+- **弹窗表头符号化（2026-10）。** 进程列表五个表头改为「词 + Unicode 符号」：
+  `Today ↓ / Today ↑ / Today ∑ / Live ↓ / Live ↑`（键随文案更新，21 表同步；∑ U+2211、
+  ↓↑ U+2193/U+2191，遵循「Text 里用 Unicode 字形、不用 SF Symbol」的既有惯例）。
+  设置 → 通用「进程默认排序」的选项复用同一组键，自动跟随；popover 底部 sparkline 的
+  「今日总量」标签同键同改。触及上游 `ContentView.swift`、`Model/ListViewModel.swift`。
 
 - **弹窗头部控件（2026-09，1.0.0 基线之后）。** 移除上游头部的「Upstream」链接（一段
   `NSWorkspace.open` 打开上游仓库的代码）——分支弹窗头部现在只有应用图标/名称、**设置**与**退出**。
   两个控件都用 `MenuItem`，并为其新增了可选 `icon: String?` 参数（SF Symbol，按 `.font` 控制大小，
   默认 `nil`，纯文字的既有调用不受影响），改动的上游文件是 `FlowTraceForMac/MenuItem.swift`；
   设置用 `gearshape`，退出用 `power`。触及 `ContentView.swift`、`MenuItem.swift`。
+
+- **通知交互（2026-10）。** 按停放在 `.trellis/tasks/09-28-notification-interactions/prd.md`
+  的规范实现。(1) **点击导航** —— 每条本地通知的 `userInfo["route"]` 携带目的地；AppDelegate 的
+  `didReceive` 把正文点击（且仅正文点击——动作按钮永不导航）映射到
+  `openHistory(selecting: .alerts)` / `openSettings(selecting: .quota / .storage)`。两个窗口都加了
+  外部选择句柄（`HistoryTabSelection` 仿 `SettingsTabSelection`；`openSettings/openHistory(selecting:)`
+  重载与 `@objc` 无参 popover 入口并存——**不要**合并成一个名字，`#selector` 会产生歧义）。
+  (2) **配额 100% 动作** —— category `QUOTA_100`（启动时注册、语言切换时重注册，动作标题在注册时
+  冻结）承载「已知 / 1 小时不再提醒 / 今天不再提醒」；回调经 `QuotaMonitor.handleQuota100Action(_:)`
+  写静音/基线账本。(3) **配额 100% 重触发语义** —— 80%/自定义保持「每周期一次」（`firedKeys`）；
+  100% 额外支持增长驱动重发：跨越送达时落持久化基线（`quota100NotifiedPeriod/Bytes`，按周期 key
+  存储），此后每个检查点满足「已用 ≥ 100% 且未静音且较基线增长 ≥ 配额的 1%」即重发。
+  1 小时静音为内存态（重启解除，与 15 分钟退避同款）；今日静音持久化（`quota100MutedDay`）。
+  `resetFiredKeys()` 清空全部 100% 状态。触及上游 `AppDelegate.swift`；三个动作标题已进全部
+  21 表（parity 测试锁定）。配额设置页说明文案 2026-10-09 起换新 key（描述 100% 增长重发），
+  旧 "Alerts fire once per period…" key 已从 21 表全部移除。(4) **进程示警去重修复（2026-10，运行时验证发现）** —— 唯一索引只保
+  表干净，`INSERT OR IGNORE` 被忽略时不拦通知，60 秒评估持续成立即重发（实测同日同方向连发 4 条）；
+  修复为投递前 `hasProcessAlert` 预查，通过后才投递、成功后才落去重行；既有测试补了通知数 == 1
+  的断言。(5) **存储提醒的启动期静默删除修复（2026-10，运行时验证发现）** ——
+  `HistoryPersistence.init` 曾无条件 `prune()`，每次启动都按 `retentionSeconds` 删窗口外数据，
+  「通知提醒手动清理」模式下也删（实测一次启动删 2 万行，提醒随即只剩示警日志旧行可数）。
+  init prune 已移除，`retentionSeconds` 仅作构造期元数据；删除唯一归属
+  `DataRetentionController`（自动模式检查点才删）。G7 测试反转为
+  `testReopenDoesNotPruneAnyTable`。(6) **存储清理覆盖示警记录（2026-10-09）** ——
+  提醒的 `expiredRowCount` 把 `process_alert` 计入逾期行数，但存储页的
+  `countRange`/`deleteRange` 只清 4 表——提醒让人清、清理清不掉（用户实测发现）。
+  两函数现均含 `process_alert`（按 ts 范围），与提醒同口径；副作用：清示警记录
+  同时清 (day, name_key, direction) 去重状态，同日同方向可能再次告警。
 
 ## 总结一句话
 

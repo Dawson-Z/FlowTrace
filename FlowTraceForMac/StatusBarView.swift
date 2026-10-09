@@ -5,11 +5,15 @@
 //  Created by f.zou on 2021/5/23.
 //
 //  Column layout:
-//    [ rate column (fixed 49 pt) ][ totals column (38 pt) ]
+//    [ rate column (fixed 49 pt) ][ "|" divider ][ totals column (38 pt) ]
+//  (the divider only renders when both columns are enabled)
 //
-//  Rate column always occupies its width when any rate is shown, so ↙/↗
-//  never shift; the totals column stacks D (today) over P (the quota period)
-//  in perfect vertical alignment, regardless of which segments are enabled.
+//  Rate column always occupies its *width* when any rate is shown, so ↙/↗
+//  never shift horizontally; vertically the column is as tall as its visible
+//  rows, so a single rate centres next to the totals column the same way a
+//  single D/P segment does. The totals column stacks D (today) over P (the
+//  quota period) in perfect vertical alignment, regardless of which segments
+//  are enabled.
 //  AppDelegate derives the item width from the same settings — including the
 //  4 pt gap between the two columns, which it used to forget.
 //
@@ -38,13 +42,62 @@ struct StatusBarView: View {
     @ObservedObject var settings = SettingsStore.shared
 
     var body: some View {
-        HStack(spacing: 4) {
-            rateColumn
-            if settings.showTodayInMenuBar || settings.showPeriodInMenuBar {
-                totalsColumn
+        // The logo segment doubles as the empty-slot fallback: with every
+        // other segment off it is forced on (the Settings toggle then shows
+        // on + disabled), so the item is never blank. Every *adjacent pair*
+        // of segments gets the "|" divider — logo|rates, rates|totals, and
+        // logo|totals (when the rates are off).
+        if showsLogo || showsRates || showsTotals {
+            HStack(spacing: 4) {
+                if showsLogo {
+                    logoSegment
+                }
+                if showsLogo && showsRates {
+                    divider
+                }
+                if showsRates {
+                    rateColumn
+                }
+                if showsRates && showsTotals {
+                    divider
+                }
+                if showsLogo && !showsRates && showsTotals {
+                    divider
+                }
+                if showsTotals {
+                    totalsColumn
+                }
             }
+            .padding(.horizontal, 3)
         }
-        .padding(.horizontal, 3)
+    }
+
+    /// Same 9 pt label colour as the ↙/↗ arrows and the D/P letters: dimmed
+    /// grey reads as faded in the menu bar, and the divider is a peer of
+    /// those glyphs, not a background hint.
+    private var divider: some View {
+        Text("|")
+            .font(.system(size: 9))
+    }
+
+    private var logoSegment: some View {
+        Image(nsImage: NSApp.applicationIconImage)
+            .resizable()
+            .interpolation(.high)
+            .frame(width: 18, height: 18)
+    }
+
+    private var showsRates: Bool {
+        settings.showDownloadInStatusBar || settings.showUploadInStatusBar
+    }
+
+    private var showsTotals: Bool {
+        settings.showTodayInMenuBar || settings.showPeriodInMenuBar
+    }
+
+    /// Forced on while every other segment is off — the never-empty rule.
+    private var showsLogo: Bool {
+        settings.showLogoInMenuBar || !(showsRates || showsTotals)
     }
 
     // MARK: - Rate column (fixed width)
@@ -63,8 +116,12 @@ struct StatusBarView: View {
 
     @ViewBuilder
     private func rateRow(show: Bool, glyph: String, bytesPerSec: Int) -> some View {
-        HStack(spacing: 3) {
-            if show {
+        // Hidden rows must not reserve their 10 pt: with only one rate
+        // enabled the column is 10 pt tall and centres vertically next to
+        // the totals column, exactly like a single D/P segment does. (The
+        // *width* stays fixed either way — that is the outer frame's job.)
+        if show {
+            HStack(spacing: 3) {
                 Text(glyph)
                     .font(.system(size: 9))
                 Text(rateString(bytesPerSec))
@@ -72,8 +129,8 @@ struct StatusBarView: View {
                     .fontWeight(.medium)
                     .frame(width: 38, alignment: .trailing)
             }
+            .frame(height: 10, alignment: .leading)
         }
-        .frame(height: 10, alignment: .leading)
     }
 
     // MARK: - Totals column

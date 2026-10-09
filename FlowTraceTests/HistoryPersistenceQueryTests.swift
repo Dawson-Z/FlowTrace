@@ -129,7 +129,7 @@ final class HistoryPersistenceQueryTests: TempDatabaseTestCase {
 
     // MARK: - L2-7  countRange
 
-    func testCountRangeMatchesAllFourTables() {
+    func testCountRangeMatchesAllFiveTables() {
         let p = makePersistence()
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
         let b = ProcessUsageAggregator.bucket(of: base)
@@ -140,12 +140,15 @@ final class HistoryPersistenceQueryTests: TempDatabaseTestCase {
         p.appendProcessUsage([flushRow(b, "a", inB: 1, outB: 1),
                               flushRow(b + 1, "a", inB: 1, outB: 1)])                             // process_usage 2
         p.appendInterfaceMinute([(minuteBucket: b, category: "Wi-Fi", inBytes: 1, outBytes: 1)])   // interface_minute 1
+        p.appendProcessAlert(ProcessAlertRow(day: Int(nowMs / 86_400_000), name: "al",
+                                              nameKey: "al", direction: "in", todayBytes: 1,
+                                              baselineBytes: 0, multiplier: 0, ts: nowMs)) { _ in } // process_alert 1
         drainWrites()
 
         let fromMs = nowMs - 60_000, toMs = nowMs + 60_000
         let count = awaitValue { p.countRange(fromMs: fromMs, toMs: toMs,
                                               fromBucket: b, toBucket: b + 2, completion: $0) }
-        XCTAssertEqual(count, 5, "4 张表合计 1+1+2+1")
+        XCTAssertEqual(count, 6, "5 张表合计 1+1+2+1+1")
 
         // 与 deleteRange 的返回值应一致
         let deleted = awaitValue { p.deleteRange(fromMs: fromMs, toMs: toMs,

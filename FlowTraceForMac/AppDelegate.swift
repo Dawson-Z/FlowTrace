@@ -39,6 +39,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // the delegate and returning [.banner,.list,.sound] makes quota and
         // abnormal-upload alerts visibly pop.
         UNUserNotificationCenter.current().delegate = self
+        // Action titles are frozen into the category at registration time,
+        // so re-register on locale change (sink below).
+        LocalNotification.registerCategories()
 
         // Wire SQLite history persistence. Order matters: this MUST run
         // before any `historyStore.append` happens, otherwise the first
@@ -76,15 +79,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         let statusBarView = AnyView(StatusBarView())
         self.network = Network()
         
-        // Create the popover. Width 540 matches ContentView's
-        // `.frame(width: 540)`; declaring the real width matters because
+        // Create the popover. Width 440 matches ContentView's
+        // `.frame(width: 440)`; declaring the real width matters because
         // AppKit clamps the popover to the screen at `show` time using this
         // size — a stale smaller value let the window grow (to the right)
         // after positioning, pushing the right edge off-screen when the
         // status item sits at the far end of the menu bar. Height stays a
         // starting point: the sparkline grows it vertically.
         AppDelegate.popover = NSPopover()
-        AppDelegate.popover.contentSize = NSSize(width: 540, height: 520)
+        AppDelegate.popover.contentSize = NSSize(width: 440, height: 520)
         AppDelegate.popover.behavior = .transient
 //        popover.contentViewController = NSHostingController(rootView: contentView.withGlobalEnvironmentObjects())
         
@@ -101,10 +104,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             applyStatusBarFit(hosting, to: button)
             self.statusBarItem.length = statusBarLength
 
-            // Extra segments (today / quota-period totals) change the ideal
-            // width — re-measure whenever those settings flip.
-            SettingsStore.shared.$showTodayInMenuBar
-                .combineLatest(SettingsStore.shared.$showPeriodInMenuBar)
+            // Any segment flip changes the ideal width (logo, rate column
+            // on/off, totals on/off, divider appearing) — re-measure on all
+            // five. Combine tops out at four-way combineLatest, hence the
+            // 4+1 nesting.
+            SettingsStore.shared.$showDownloadInStatusBar
+                .combineLatest(SettingsStore.shared.$showUploadInStatusBar,
+                               SettingsStore.shared.$showTodayInMenuBar,
+                               SettingsStore.shared.$showPeriodInMenuBar)
+                .combineLatest(SettingsStore.shared.$showLogoInMenuBar)
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _, _ in
                     guard let self, let button = self.statusBarItem?.button else { return }
@@ -126,6 +134,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             .sink { [weak self] _ in
                 self?.settingsWindow?.title = Loc.l("Settings")
                 self?.historyWindow?.title = Loc.l("History")
+                // Action titles ride on the same localization signal.
+                LocalNotification.registerCategories()
             }
             .store(in: &windowTitleCancellables)
 
@@ -154,17 +164,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // column ended up ~26 pt instead of 34, and "D 86M" — 27.98 pt — was
     // ellipsised to "D 86…".
     private var statusBarLength: CGFloat {
-        var width: CGFloat = 6
         let anyRate = SettingsStore.shared.showDownloadInStatusBar
             || SettingsStore.shared.showUploadInStatusBar
         let anyTotal = SettingsStore.shared.showTodayInMenuBar
             || SettingsStore.shared.showPeriodInMenuBar
-        if anyRate { width += 49 }
-        if anyTotal {
-            if anyRate { width += 4 }
-            width += 38
+        // The logo is forced on while nothing else is (empty-slot fallback) —
+        // the same rule StatusBarView renders by.
+        let showLogo = SettingsStore.shared.showLogoInMenuBar || !(anyRate || anyTotal)
+        var width: CGFloat = 6
+        var segments = 0
+        if showLogo {
+            width += 18
+            segments += 1
         }
-        return max(width, 40)
+        if anyRate {
+            width += 49
+            segments += 1
+        }
+        if anyTotal {
+            width += 38
+            segments += 1
+        }
+        // Every adjacent pair of segments carries the "|" divider: two 4 pt
+        // gaps plus the ~3 pt glyph.
+        width += CGFloat(max(segments - 1, 0)) * 11
+        return width
     }
 
     private var statusBarCancellables: Set<AnyCancellable> = []
@@ -254,6 +278,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         completionHandler([.banner, .list, .sound])
     }
 
+    /// Notification interaction: quota-100% actions write the mute ledger,
+    /// body clicks navigate to the surface named in the userInfo route.
+    /// Actions never navigate; the body click never mutes.
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let content = response.notification.request.content
+
+        if content.categoryIdentifier == LocalNotification.quota100CategoryID {
+            SharedStore.quotaMonitor.handleQuota100Action(response.actionIdentifier)
+        }
+
+        if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+           let route = content.userInfo[LocalNotification.routeKey] as? String {
+            switch route {
+            case LocalNotification.Route.historyAlerts:
+                openHistory(selecting: .alerts)
+            case LocalNotification.Route.settingsQuota:
+                openSettings(selecting: .quota)
+            case LocalNotification.Route.settingsStorage:
+                openSettings(selecting: .storage)
+            default:
+                Log.appDelegate.info("unknown notification route: \(route)")
+            }
+        }
+        completionHandler()
+    }
+
     // MARK: - Settings window
     //
     // The macOS 13+ `Settings { }` scene is unavailable because the deployment
@@ -273,14 +325,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     /// Selection shared with the hosted view so the window can follow it.
     private var settingsTabSelection: SettingsTabSelection?
 
+    /// Open (or focus) the settings window with the given pane selected.
+    /// The @objc no-argument variant stays for the popover menu item.
     @objc func showSettingsWindow() {
+        openSettings(selecting: nil)
+    }
+
+    func openSettings(selecting tab: SettingsTab?) {
         if let window = settingsWindow, window.isVisible {
+            if let tab { settingsTabSelection?.tab = tab }
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
         }
 
         let selection = SettingsTabSelection()
+        if let tab { selection.tab = tab }
         settingsTabSelection = selection
         let host = NSHostingController(
             rootView: SettingsRootView(settings: SettingsStore.shared, selection: selection)
@@ -334,14 +394,25 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // survives close/reopen because the hosting controller is cached.
 
     private var historyWindow: NSWindow?
+    /// Selection shared with the hosted view so a notification click can
+    /// open the window directly on a given tab.
+    private var historyTabSelection: HistoryTabSelection?
 
     @objc func showHistoryWindow() {
+        openHistory(selecting: nil)
+    }
+
+    func openHistory(selecting tab: HistoryTab?) {
         if let window = historyWindow, window.isVisible {
+            if let tab { historyTabSelection?.tab = tab }
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
         }
-        let host = NSHostingController(rootView: HistoryWindowView())
+        let selection = HistoryTabSelection()
+        if let tab { selection.tab = tab }
+        historyTabSelection = selection
+        let host = NSHostingController(rootView: HistoryWindowView(selection: selection))
         let window = NSWindow(contentViewController: host)
         window.title = Loc.l("History")
         window.styleMask = [.titled, .closable, .resizable]

@@ -67,7 +67,25 @@ final class AlertAndQuotaIntegrationTests: TempDefaultsTestCase {
         settings.alertDownloadMultiplier = 1
 
         let p = SharedTestPersistence.attach("alert-dedup")
-        let monitor = ProcessAlertMonitor(settings: settings, deliver: deliveredOK)
+        // 计数投递桩：行去重（UNIQUE 索引）之外，**通知本身**也必须只发一条。
+        // 回归：2026-10-09 实测发现原实现只在写行时 INSERT OR IGNORE，
+        // 横幅在 60s 检查持续成立时每分钟重发一次（行数恒为 1，测试却绿的）。
+        final class DeliveryCounter {
+            private let lock = NSLock()
+            private var count = 0
+            var deliver: NotificationDelivery {
+                { _, done in
+                    self.lock.lock(); self.count += 1; self.lock.unlock()
+                    done(true)
+                }
+            }
+            var notifications: Int {
+                lock.lock(); defer { lock.unlock() }
+                return count
+            }
+        }
+        let counter = DeliveryCounter()
+        let monitor = ProcessAlertMonitor(settings: settings, deliver: counter.deliver)
         let now = Date()
 
         monitor.feed(entities: [entity(90002, "dup-downloader", inBps: 2 * MB, outBps: 0)],
@@ -82,6 +100,8 @@ final class AlertAndQuotaIntegrationTests: TempDefaultsTestCase {
 
         XCTAssertEqual(alertRowCount(p), 1,
                        "同一自然日同一方向只能有一条：去重由 process_alert 的 UNIQUE 索引承担")
+        XCTAssertEqual(counter.notifications, 1,
+                       "通知本身也必须只发一条：投递前须查 (day, name_key, direction) 是否已有记录")
     }
 
     /// 反方向独立入账：同一进程的 out 方向不受 in 方向已告警的影响。

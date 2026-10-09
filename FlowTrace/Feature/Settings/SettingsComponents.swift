@@ -71,6 +71,22 @@ struct SettingsNote: View {
     }
 }
 
+/// Caption naming a group of rows (e.g. "Menu bar display" above the four
+/// show-* toggles). Deliberately identical to a row label — same `body`
+/// size, same regular weight: the caption's job is grouping, not emphasis.
+/// Semantic font only — no hard-coded point sizes in Settings.
+struct SettingsSectionTitle: View {
+    let text: String
+
+    // Same reason as `SettingsRow`: the key is language-independent, so the
+    // observation has to be on the view that resolves it.
+    @ObservedObject private var l10n = LocalizationManager.shared
+
+    var body: some View {
+        Text(Loc.l(text))
+    }
+}
+
 /// Inline warning for the Quota / Alerts panes: the feature's switch is on,
 /// but the system would drop its notifications anyway. Covers both missing
 /// states — `denied` (only fixable in System Settings, so the button opens

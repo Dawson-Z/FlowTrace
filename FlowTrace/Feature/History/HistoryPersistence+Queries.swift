@@ -30,13 +30,15 @@ extension HistoryPersistence {
     // MARK: - Range clear (manual, by date interval)
 
     /// Count rows in [fromMs, toMs) / [fromBucket, toBucket) for the
-    /// confirmation dialog before a manual range delete.
+    /// confirmation dialog before a manual range delete. Same five-table
+    /// scope as `deleteRange` — including `process_alert` (unified with the
+    /// retention reminder's `expiredRowCount` scope, 2026-10-09).
     func countRange(fromMs: Int64, toMs: Int64, fromBucket: Int, toBucket: Int,
                     completion: @escaping (Int) -> Void) {
         queue.async { [weak self] in
             guard let self else { DispatchQueue.main.async { completion(0) }; return }
             var total = 0
-            for table in ["history", "interface_history"] {
+            for table in ["history", "interface_history", "process_alert"] {
                 let c = self.scalarInt("SELECT COUNT(*) FROM \(table) WHERE ts >= ? AND ts < ?;",
                                        a: Int64(fromMs), b: Int64(toMs))
                 total += c

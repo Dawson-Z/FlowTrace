@@ -1,0 +1,36 @@
+{
+  "id": "notification-interactions",
+  "name": "notification-interactions",
+  "title": "Notification interactions: click navigation + quota 100% actions & re-trigger semantics",
+  "description": "Implemented 2026-10-09 from the finalized spec (see prd.md). Three gaps closed: (G1) click navigation — every local notification carries userInfo[route]; the app delegate's didReceive maps body clicks to openHistory(selecting: .alerts) / openSettings(selecting: .quota / .storage); both windows gained external selection handles (HistoryTabSelection mirrors SettingsTabSelection). (G2) the quota 100% notification carries the QUOTA_100 category with Acknowledge / Mute-1-hour / Mute-today actions (titles localized in all 21 tables; re-registered on locale change). (G3) quota 100% re-fires while usage grows past a persisted baseline by >= 1% of the quota, unless muted (1-hour mute in-memory; today-mute persisted in quota100MutedDay); 80%/custom stay once-per-period. 219 tests passing (13 new: pure-function + integration with a recording deliver stub). docs/NOTIFICATIONS.md documents the shipped behavior.",
+  "status": "done",
+  "dev_type": "feature",
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "Dawson",
+  "assignee": "Dawson",
+  "createdAt": "2026-09-28",
+  "completedAt": "2026-10-09",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "FlowTrace/Feature/Usage/QuotaMonitor.swift",
+    "FlowTrace/Feature/Usage/ProcessAlertMonitor.swift",
+    "FlowTrace/Feature/Usage/LocalNotification.swift",
+    "FlowTrace/Feature/Settings/DataRetentionController.swift",
+    "FlowTraceForMac/AppDelegate.swift",
+    "docs/NOTIFICATIONS.md"
+  ],
+  "notes": "",
+  "meta": {
+    "descriptor": "Implemented 2026-10-09 — see prd.md §5 for the decisions as settled",
+    "status_reason": "All three gaps closed; 219 tests passing (13 new)."
+  }
+}

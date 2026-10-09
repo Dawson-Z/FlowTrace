@@ -84,7 +84,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     /// expanded) needs no scrolling.
     var contentHeight: CGFloat {
         switch self {
-        case .general: return 460
+        case .general: return 740
         case .quota:   return 300
         case .alerts:  return 340
         case .storage: return 400

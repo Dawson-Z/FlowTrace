@@ -44,7 +44,7 @@ struct SettingsQuotaPane: View {
                         step: 1
                     )
                 }
-                SettingsNote(text: "Alerts fire once per period at 80%, 100% and your custom threshold.")
+                SettingsNote(text: "80% and your custom threshold alert once per period. At 100% the alert repeats while usage keeps growing (every extra 1% of the quota) — mute it from the notification if needed. Usage and alerts reset automatically at the start of each period (day / week / month).")
             }
         }
         // Panes are rebuilt on every tab switch, so appear is the reliable

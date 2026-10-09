@@ -80,10 +80,15 @@ final class HistoryPersistence {
         self.retentionSeconds = retentionSeconds
         self.queue = DispatchQueue(label: "history-persistence", qos: .utility)
         guard open() else { return nil }
-        // Schema migrations / pruning happen on init. Single-threaded by
+        // Schema migrations happen on init. Single-threaded by
         // construction: we hold no references until after this returns.
         createSchemaIfNeeded()
-        prune()
+        // NOTE: retention is *not* enforced here. Pruning at init ignored the
+        // user's cleanup mode and silently deleted every overdue row on each
+        // launch, which made the "notify before manual cleanup" mode remove
+        // data it had promised only to remind about (found 2026-10-09). The
+        // single policy owner is DataRetentionController: automatic mode
+        // deletes at the daily checkpoint; manual-notification never deletes.
     }
 
     deinit {
@@ -165,29 +170,6 @@ final class HistoryPersistence {
         }
     }
 
-    private func prune() {
-        let cutoffMs = Int64(Date().timeIntervalSince1970 * 1000) - Int64(retentionSeconds * 1000)
-        for table in ["history", "interface_history"] {
-            var stmt: OpaquePointer?
-            defer { sqlite3_finalize(stmt) }
-            let sql = "DELETE FROM \(table) WHERE ts < ?;"
-            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else { continue }
-            sqlite3_bind_int64(stmt, 1, cutoffMs)
-            sqlite3_step(stmt)
-        }
-        // process_usage / interface_minute store local *minute* ordinals,
-        // not epoch ms. Delete the cutoff bucket from both in one exec.
-        let tzMs = Int64(TimeZone.current.secondsFromGMT()) * 1000
-        let cutoffBucket = (cutoffMs + tzMs) / 60000
-        let sql = "DELETE FROM process_usage WHERE minute_bucket < \(cutoffBucket);"
-                + "DELETE FROM interface_minute WHERE minute_bucket < \(cutoffBucket);"
-        var err: UnsafeMutablePointer<CChar>?
-        if sqlite3_exec(db, sql, nil, nil, &err) != SQLITE_OK {
-            Log.persistence.error("minute prune failed: \(err.map { String(cString: $0) } ?? "unknown")")
-            sqlite3_free(err)
-        }
-    }
-
     // MARK: - Write (async, serialised)
 
     /// Append one row. Returns immediately; the actual write happens on the
@@ -230,13 +212,18 @@ final class HistoryPersistence {
     // MARK: - Range clear (manual, by date interval)
 
     /// Delete rows whose timestamp/minutes fall in [fromMs, toMs) / [fromBucket,
-    /// toBucket) across all four tables. Returns the total rows removed.
+    /// toBucket) across all five tables — including `process_alert`: the
+    /// retention reminder counts alert rows as overdue, so the Settings
+    /// cleanup must be able to clear them (same scope as `expiredRowCount`;
+    /// unified 2026-10-09). Clearing the alert log also clears the
+    /// (day, name_key, direction) dedup state, so a still-abnormal process
+    /// may alert again the same day. Returns the total rows removed.
     func deleteRange(fromMs: Int64, toMs: Int64, fromBucket: Int, toBucket: Int,
                      completion: @escaping (Int) -> Void) {
         queue.async { [weak self] in
             guard let self else { DispatchQueue.main.async { completion(0) }; return }
             var total = 0
-            for table in ["history", "interface_history"] {
+            for table in ["history", "interface_history", "process_alert"] {
                 var stmt: OpaquePointer?
                 defer { sqlite3_finalize(stmt) }
                 let sql = "DELETE FROM \(table) WHERE ts >= ? AND ts < ?;"
@@ -408,6 +395,34 @@ final class HistoryPersistence {
             sqlite3_bind_int64(stmt, 8, row.ts)
             let inserted = sqlite3_step(stmt) == SQLITE_DONE && sqlite3_changes(self.db) > 0
             DispatchQueue.main.async { completion(inserted) }
+        }
+    }
+
+    /// Whether today's dedup row already exists for `(day, nameKey, direction)`.
+    /// Delivered on main. The process-alert monitor consults this *before*
+    /// delivering so the banner itself fires at most once per day — the
+    /// unique index alone only keeps the table clean, it does not stop a
+    /// second `add`.
+    func hasProcessAlert(day: Int, nameKey: String, direction: String,
+                         completion: @escaping (Bool) -> Void) {
+        queue.async { [weak self] in
+            guard let self, let db = self.db else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            var stmt: OpaquePointer?
+            defer { sqlite3_finalize(stmt) }
+            let sql = "SELECT 1 FROM process_alert WHERE day = ? AND name_key = ? AND direction = ? LIMIT 1;"
+            guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+                Log.persistence.error("prepare process_alert lookup failed: \(String(cString: sqlite3_errmsg(db)))")
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            sqlite3_bind_int64(stmt, 1, Int64(day))
+            sqlite3_bind_text(stmt, 2, nameKey, -1, SQLITE_TRANSIENT_BRIDGE)
+            sqlite3_bind_text(stmt, 3, direction, -1, SQLITE_TRANSIENT_BRIDGE)
+            let exists = sqlite3_step(stmt) == SQLITE_ROW
+            DispatchQueue.main.async { completion(exists) }
         }
     }
 

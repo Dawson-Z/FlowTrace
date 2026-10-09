@@ -1,7 +1,7 @@
 # FlowTrace Technical Architecture & File Reference
 
 > This document was rewritten from the current working tree (macOS 11.0
-> deployment target, `xcodebuild test` 206 passing). All type names,
+> deployment target, `xcodebuild test` 220 passing). All type names,
 > method names, and SQL table names are drawn from the actual code;
 > quoted comments are flagged with their source.
 
@@ -115,8 +115,8 @@ FlowTrace/
 | File | Responsibility |
 |---|---|
 | `AppDelegate.swift` | Entry point (`@NSApplicationMain`). Launch order, menu-bar `NSStatusItem` wiring, popover lifecycle & deep sleep, lazy creation of settings/history windows, notification delegate (banner/sound even in the foreground), the denied-permission launch reminder alert (permanently suppressible; skipped under XCTest), localised window-title refresh |
-| `ContentView.swift` | Popover root: header (icon + name + Settings + Quit) → search bar → sortable headers → process list → interface summary → history sparkline. Contains `ProcessRow`. |
-| `StatusBarView.swift` | Menu-bar content: two fixed-width columns — rate column (49 pt: ↙/↗ + rate) and totals column (38 pt: `D`=today, `P`=current quota period). The width constants must agree with `AppDelegate.statusBarLength`. |
+| `ContentView.swift` | Popover root: header (icon + name + **period quota summary**, centred) + Settings + Quit → search bar → sortable headers → process list → interface summary → history block. Every module below the header is switchable from Settings ▸ General ▸ "Popover display" (`showProcessListInPopover` hides search bar + headers + rows as one unit; `showInterfacesInPopover`; the history block disappears only when all four of its sub-switches are off). Contains `ProcessRow`. |
+| `StatusBarView.swift` | Menu-bar content: up to three segments — logo (18 pt icon; forced on while every other segment is off, per the never-empty rule), rate column (49 pt: ↙/↗ + rate), totals column (38 pt: `D`=today, `P`=current quota period) — with a 9 pt "\|" divider between every adjacent pair. A single rate row centres vertically (hidden rows no longer reserve height). Width constants and the per-segment `statusBarLength` accumulation (divider = 11 pt) must agree. |
 | `MenuItem.swift` | Header text buttons with an optional SF Symbol (`icon: String?`, default nil): Settings (`gearshape`) and Quit (`power`) |
 | `Network.swift` | **The frame-pipeline hub.** `handleFrame` feeds `ProcessUsageAggregator` / `UsageAggregator.tick` / `ProcessAlertMonitor`, then on the main queue writes `HistoryStore`, `StatusDataModel`, `ListViewModel`. Contains `parser` (the only normalisation point) and `tryToMakeAppSleepDeep` (release the popover controller after 30 idle frames) |
 | `Store.swift` | `enum SharedStore`: all singletons + `attachHistoryPersistence(_:)` + `View.withGlobalEnvironmentObjects()` |
@@ -157,7 +157,7 @@ directly mis-resolves on bridged surfaces.
 |---|---|
 | `RingBuffer.swift` | Generic fixed-capacity ring buffer, pre-allocated array, O(1) append, no allocation |
 | `HistoryStore.swift` | Popover sparkline data source. `capacity = 60`; `samples: [HistoryFrame]` + `summary: HistorySummary` (today's peak / 24 h mean / today's total); `bootstrap()` seeds from the last 60 rows on disk so the sparkline isn't empty after relaunch; `append` publishes the in-memory snapshot and writes through |
-| `HistoryView.swift` | Popover-bottom 60-sample sparkline (two `Path`s: in above baseline, out below) + peak/mean + open-history-window button |
+| `HistoryView.swift` | Popover-bottom history block: 60-sample sparkline (two `Path`s: in above baseline, out below), "Last 2 min" caption, today-peak and Today-∑ figure rows, and the open-history-window button — each sub-module hides independently per Settings ▸ General ▸ "Popover display" (peak and ∑ share one row when both are visible) |
 | `HistoryWindowView.swift` | History window root, three tabs: `appUsage` (default) / `heatmap` / `alerts`; `.appAccentScope` applies here; `minWidth 680 / minHeight 560` |
 | `AppUsageView.swift` | App usage page: per-process cumulative ↓/↑/total over the selected range, sortable, CSV-exportable |
 | `ProcessUsageModel.swift` | App-usage VM: `HeatmapRange` + `rangeBuckets` local-minute-bucket translation + sorting |
@@ -212,7 +212,7 @@ Category names (also the property names on `Log` / `AppLogger`):
 
 | File | Responsibility |
 |---|---|
-| `SettingsStore.swift` | `ObservableObject` over `UserDefaults.standard` with 20 persistent keys (see §6). One-shot key rename (`showMonthInMenuBar` → `showPeriodInMenuBar`). `applyAppearance()` maps the setting to `NSApp.appearance` and also pins the cached popover window |
+| `SettingsStore.swift` | `ObservableObject` over `UserDefaults.standard` with 27 persistent keys (see §6). One-shot key rename (`showMonthInMenuBar` → `showPeriodInMenuBar`). `applyAppearance()` maps the setting to `NSApp.appearance` and also pins the cached popover window |
 | `SettingsView.swift` | `SettingsTab` (`general / quota / alerts / storage / about`), `SettingsMetrics` (`width 480 / padding 20 / tabBarHeight 66 / controlWidth 200`), `SettingsTabSelection`, `SettingsRootView`, the hand-drawn `SettingsTabBar` / `SettingsTabButton`, and `SettingsPanes` (dispatches to the per-pane files) |
 | `SettingsComponents.swift` | Cross-pane building blocks: `SettingsPane` (every pane is its own SwiftUI root and **must** apply `.appAccentScope` itself), `SettingsRow` / `SettingsNote` / `SettingsSwitch`, `EditableNumberField`, `AccentTimeField`, `NotificationPermissionWarning` (the inline orange row the Quota/Alerts/Storage(reminder-mode) panes show while the notification deliverable is enabled but the system would drop it: `denied` → open System Settings, `notDetermined` → ask directly) |
 | `Settings{General,Quota,Alerts,Storage,About}Pane.swift` | One file per `SettingsTab`. These panes used to be private types inside `SettingsView.swift` and were promoted to internal during the file split |
@@ -225,13 +225,13 @@ Category names (also the property names on `Log` / `AppLogger`):
 | File | Responsibility |
 |---|---|
 | `UsageAggregator.swift` | Period-usage aggregator: `UsageBytes` (in/out/total) + `today/week/month` + `bytes(forPeriod:)`. `tick()` is called from the frame path and is throttled internally (default 2 s). The menu-bar `P` segment and `QuotaMonitor` share this one source |
-| `LocalNotification.swift` | **The one place a local notification is actually handed to the system.** `typealias NotificationDelivery` is the injection seam (`QuotaMonitor` / `ProcessAlertMonitor` / `DataRetentionController` each take one); `LocalNotification.deliver` is the production implementation: it reads `getNotificationSettings().authorizationStatus` **before** calling `add`, because `add` returns `error == nil` even when the app is not authorized — measured on this machine — so a caller that trusted the error would record the notification as delivered and never retry. Completion is hopped to the main queue. The same file hosts `NotificationPermissionModel`, an observable of the authorization status (`refresh()` / `request()`) backing the Settings inline warning |
-| `QuotaMonitor.swift` | Quota-threshold monitor: subscribes to `aggregator.$today/$week/$month`; threshold set `{80, 100, custom}`; crossing rule `prev < t && current >= t` (extracted into a static pure function `shouldFire(...)` so it can be unit-tested without a live aggregator); dedup key `"<periodStartISO>:<threshold>"` in UserDefaults `quotaFiredKeys`, auto-resets on period rollover. Includes `ByteFormatter`.<br>**Delivery semantics**: the fired key is written only **after** a successful delivery; a refusal backs the threshold off for 15 minutes (in-memory — the retry happens immediately after a restart) so that granting the permission later actually delivers the catch-up notification.<br>**`bootstrap()` must be called at launch**: `SharedStore.quotaMonitor` is a lazily-initialised `static let`; nothing in the launch path used to touch it, which meant its `init` — and with it the subscriptions — never ran, and the quota feature was silently dead. `AppDelegate.applicationDidFinishLaunching` does the touch |
-| `ProcessAlertMonitor.swift` | Per-process abnormal-traffic alert: each direction independently requires both "today's cumulative bytes ≥ the absolute MB floor" and "today's cumulative bytes ≥ 7-day daily median × multiplier"; a zero baseline counts as "any traffic is abnormal". **At most one alert per process per direction per local day** — dedup is enforced by the unique index `(day, name_key, direction)` in `process_alert` (survives restart). `decide(...)` is a pure function.<br>**Delivery semantics**: delivers *before* writing the dedup row — doing it the other way round (the original implementation) meant a refused delivery still recorded it as "today's alert", so the user was never told and the process would never be retried. Same 15-minute back-off after a refusal |
+| `LocalNotification.swift` | **The one place a local notification is actually handed to the system.** `typealias NotificationDelivery` is the injection seam (`QuotaMonitor` / `ProcessAlertMonitor` / `DataRetentionController` each take one); `LocalNotification.deliver` is the production implementation: it reads `getNotificationSettings().authorizationStatus` **before** calling `add`, because `add` returns `error == nil` even when the app is not authorized — measured on this machine — so a caller that trusted the error would record the notification as delivered and never retry. Completion is hopped to the main queue. The same file also hosts: `NotificationPermissionModel` (an observable of the authorization status backing the Settings inline warning); the click-routing constants (`routeKey` + three `Route` destinations) and the registration of the quota-100% action category `QUOTA_100` (registered at launch and again on locale change — action titles freeze at registration) |
+| `QuotaMonitor.swift` | Quota-threshold monitor: subscribes to `aggregator.$today/$week/$month`; threshold set `{80, 100, custom}`; crossing rule `prev < t && current >= t` (extracted into a static pure function `shouldFire(...)` so it can be unit-tested without a live aggregator); dedup key `"<periodStartISO>:<threshold>"` in UserDefaults `quotaFiredKeys`, auto-resets on period rollover. Includes `ByteFormatter`.<br>**Delivery semantics**: the fired key is written only **after** a successful delivery; a refusal backs the threshold off for 15 minutes (in-memory — the retry happens immediately after a restart) so that granting the permission later actually delivers the catch-up notification.<br>**`bootstrap()` must be called at launch**: `SharedStore.quotaMonitor` is a lazily-initialised `static let`; nothing in the launch path used to touch it, which meant its `init` — and with it the subscriptions — never ran, and the quota feature was silently dead. `AppDelegate.applicationDidFinishLaunching` does the touch.<br>**100% growth re-fire (2026-10)**: 80%/custom stay once-per-period; 100% additionally takes a growth branch — the crossing delivery seeds a persisted baseline (`quota100NotifiedPeriod/Bytes`, keyed by period), and every check re-fires when `shouldRefire100(...)` holds (≥100%, not muted, grown ≥ `limitBytes/100` past the baseline), advancing the baseline. The three actions (Acknowledge / 1-hour / Today) go through `handleQuota100Action` to write the ledger: Acknowledge moves the baseline to now; the 1-hour mute is in-memory; the today mute persists in `quota100MutedDay`. `resetFiredKeys()` clears the whole 100% state. The notification carries category `QUOTA_100` and `userInfo["route"]` (body click opens the settings quota pane; routed by the app delegate's `didReceive`) |
+| `ProcessAlertMonitor.swift` | Per-process abnormal-traffic alert: each direction independently requires both "today's cumulative bytes ≥ the absolute MB floor" and "today's cumulative bytes ≥ 7-day daily median × multiplier"; a zero baseline counts as "any traffic is abnormal". **At most one alert per process per direction per local day** — dedup is enforced by the unique index `(day, name_key, direction)` in `process_alert` (survives restart). `decide(...)` is a pure function.<br>**Delivery semantics**: before delivering, a `hasProcessAlert(...)` pre-query checks whether today's slot is taken — the unique index only keeps the table clean; a swallowed `INSERT OR IGNORE` never stops the notification itself, and a 60-second check that keeps evaluating true just re-fires (measured 2026-10: the same process+direction fired four notifications in one day before the fix). Once the pre-query passes, delivery happens *before* writing the dedup row — the other order meant a refused delivery still recorded it as "today's alert", so the user was never told and the process would never be retried. Same 15-minute back-off after a refusal |
 
 ### 4.4 `FlowTraceTests/`
 
-22 test files, 206 cases (2026-09). Real dependencies, injection-isolated — the
+22 test files, 220 cases (2026-10). Real dependencies, injection-isolated — the
 host process is **not**:
 
 | File | Coverage |
@@ -329,9 +329,9 @@ when spec and AGENTS.md disagree, AGENTS.md wins (and so do the agents).
 
 | Trigger | Method | Coverage |
 |---|---|---|
-| Once at launch | `prune()` (by `retentionSeconds`) | `history`, `interface_history`, `process_usage`, `interface_minute` (**not** `process_alert`) |
+| ~~Once at launch~~ (removed 2026-10-09) | ~~`prune()`~~ | Used to delete the four data tables by `retentionSeconds` regardless of the cleanup mode — even in "notify before manual cleanup" mode it silently deleted overdue data on every launch, contradicting the remind-only contract (found during runtime verification: one launch removed 20k rows). Retention deletion now happens **only** at the daily checkpoint |
 | Daily checkpoint (auto mode) | `pruneExpired(cutoffMs:cutoffBucket:)` / `expiredRowCount(...)` | `ts` group: `history`, `interface_history`, `process_alert`; bucket group: `process_usage`, `interface_minute` |
-| User-initiated | `clearAllTables(completion:)` (5 tables), `deleteRange(fromMs:toMs:fromBucket:toBucket:)` / `countRange(...)` (4 tables) | see left |
+| User-initiated | `deleteRange(fromMs:toMs:fromBucket:toBucket:)` / `countRange(...)` (**5 tables**, including `process_alert` since 2026-10-09 — same scope as the reminder's `expiredRowCount`: if the reminder counts alert rows as overdue, cleanup must be able to clear them; clearing the alert log also clears the same-day dedup state) | see left |
 
 Default retention is 7 days; the actual value comes from
 `SettingsStore.historyRetentionDays` (default 30) at launch.
@@ -356,7 +356,7 @@ Default retention is 7 days; the actual value comes from
 
 ## 6. Configuration: `SettingsStore`
 
-Stored in `UserDefaults.standard` (read with `defaults read local.FlowTrace`). 20 keys:
+Stored in `UserDefaults.standard` (read with `defaults read local.FlowTrace`). 27 keys:
 
 | key | property | default | note |
 |---|---|---|---|
@@ -375,6 +375,13 @@ Stored in `UserDefaults.standard` (read with `defaults read local.FlowTrace`). 2
 | `quotaCustomPercent` | same | `0` | 0 disables the custom threshold (80/100 are always on) |
 | `showTodayInMenuBar` | same | `false` | menu-bar `D` segment |
 | `showPeriodInMenuBar` | same | `false` | menu-bar `P` segment |
+| `showLogoInMenuBar` | same | `false` | menu-bar logo segment (forced on + toggle disabled while every other segment is off) |
+| `showProcessListInPopover` | same | `true` | popover process list (search bar + headers + rows) |
+| `showInterfacesInPopover` | same | `true` | popover interface summary |
+| `showSparklineInPopover` | same | `true` | popover last-2-min sparkline |
+| `showTodayPeakInPopover` | same | `true` | popover today-peak figure row |
+| `showTodayTotalInPopover` | same | `true` | popover Today-∑ figure row |
+| `showHistoryEntryInPopover` | same | `true` | popover "Open history statistics" button |
 | `uploadAlertEnabled` | same | `false` | |
 | `alertDownloadMultiplier` | same | `10` | |
 | `alertUploadMultiplier` | same | `10` | |
@@ -385,6 +392,7 @@ Stored in `UserDefaults.standard` (read with `defaults read local.FlowTrace`). 2
 
 - `ft.accent.source` / `ft.accent.hex` — owned by `AccentColorManager`
 - `quotaFiredKeys` — written and read directly by `QuotaMonitor`
+- `quota100NotifiedPeriod` / `quota100NotifiedBytes` / `quota100MutedDay` — `QuotaMonitor` (100% growth re-fire baseline and today-mute)
 - `notificationLaunchReminderSuppressed` — `AppDelegate` (the "Don't remind me again" opt-out of the denied-permission launch alert)
 - not persisted: `refreshInterval` is `let = 1` (fixed 1 s; the UI no longer offers this knob)
 

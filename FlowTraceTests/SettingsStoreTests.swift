@@ -45,6 +45,13 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(s.quotaCustomPercent, 0)
         XCTAssertFalse(s.showTodayInMenuBar)
         XCTAssertFalse(s.showPeriodInMenuBar)
+        XCTAssertFalse(s.showLogoInMenuBar)
+        XCTAssertTrue(s.showProcessListInPopover)
+        XCTAssertTrue(s.showInterfacesInPopover)
+        XCTAssertTrue(s.showSparklineInPopover)
+        XCTAssertTrue(s.showTodayPeakInPopover)
+        XCTAssertTrue(s.showTodayTotalInPopover)
+        XCTAssertTrue(s.showHistoryEntryInPopover)
         XCTAssertFalse(s.uploadAlertEnabled)
         XCTAssertEqual(s.alertDownloadMultiplier, 10)
         XCTAssertEqual(s.alertUploadMultiplier, 10)
@@ -104,7 +111,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(s.historyRetentionDays, 7)
     }
 
-    // L2-23: 19 个持久化 key 全量往返（launchAtLogin 除外——它以系统登录项为权威，
+    // L2-23: 26 个持久化 key 全量往返（launchAtLogin 除外——它以系统登录项为权威，
     // 不经 UserDefaults，见 ARCHITECTURE §6 的「不由 SettingsStore 拥有的 key」）
     func testAllPersistedKeysRoundTrip() {
         let writer = SettingsStore(defaults: defaults)
@@ -123,6 +130,13 @@ final class SettingsStoreTests: XCTestCase {
         writer.quotaCustomPercent      = 85
         writer.showTodayInMenuBar      = true
         writer.showPeriodInMenuBar     = true
+        writer.showLogoInMenuBar       = true
+        writer.showProcessListInPopover  = false
+        writer.showInterfacesInPopover   = false
+        writer.showSparklineInPopover    = false
+        writer.showTodayPeakInPopover    = false
+        writer.showTodayTotalInPopover   = false
+        writer.showHistoryEntryInPopover = false
         writer.uploadAlertEnabled      = true
         writer.alertDownloadMultiplier = 7
         writer.alertUploadMultiplier   = 8
@@ -145,6 +159,13 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(reader.quotaCustomPercent, 85)
         XCTAssertTrue(reader.showTodayInMenuBar)
         XCTAssertTrue(reader.showPeriodInMenuBar)
+        XCTAssertTrue(reader.showLogoInMenuBar)
+        XCTAssertFalse(reader.showProcessListInPopover)
+        XCTAssertFalse(reader.showInterfacesInPopover)
+        XCTAssertFalse(reader.showSparklineInPopover)
+        XCTAssertFalse(reader.showTodayPeakInPopover)
+        XCTAssertFalse(reader.showTodayTotalInPopover)
+        XCTAssertFalse(reader.showHistoryEntryInPopover)
         XCTAssertTrue(reader.uploadAlertEnabled)
         XCTAssertEqual(reader.alertDownloadMultiplier, 7)
         XCTAssertEqual(reader.alertUploadMultiplier, 8)

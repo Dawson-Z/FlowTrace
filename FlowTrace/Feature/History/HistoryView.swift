@@ -12,6 +12,9 @@ import SwiftUI
 
 struct HistoryView: View {
     @ObservedObject var store: HistoryStore
+    // Sub-module visibility (Settings ▸ General ▸ popover display). The
+    // caller hides this whole view when all four are off.
+    @ObservedObject private var settings = SettingsStore.shared
 
     // The entry row below reads its colour from the window root's
     // `appAccentScope`, so it repaints when the accent changes.
@@ -26,57 +29,71 @@ struct HistoryView: View {
         let latestIn  = samples.last?.inBytesPerSec  ?? 0
         let latestOut = samples.last?.outBytesPerSec ?? 0
         let summary = store.summary
+        let showSparkline = settings.showSparklineInPopover
+        let showPeak = settings.showTodayPeakInPopover
+        let showTotal = settings.showTodayTotalInPopover
 
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
-                Text(Loc.l("last 2 min"))
-                    .font(.system(size: 9))
+            if showSparkline {
+                HStack(spacing: 6) {
+                    Text(Loc.l("Last 2 min"))
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Text("↓ \(formatBytesCompact(bytes: latestIn))")
+                            .font(.system(size: 9, design: .monospaced))
+                        Text("↑ \(formatBytesCompact(bytes: latestOut))")
+                            .font(.system(size: 9, design: .monospaced))
+                    }
                     .foregroundColor(.secondary)
-                Spacer()
-                HStack(spacing: 4) {
-                    Text("↓ \(formatBytesCompact(bytes: latestIn))")
-                        .font(.system(size: 9, design: .monospaced))
-                    Text("↑ \(formatBytesCompact(bytes: latestOut))")
-                        .font(.system(size: 9, design: .monospaced))
                 }
-                .foregroundColor(.secondary)
+                sparkline(samples: samples, peak: peak)
+                    .frame(height: 28)
             }
-            sparkline(samples: samples, peak: peak)
-                .frame(height: 28)
 
             // Milestone 8: today's peaks + today's totals, both from the
             // on-disk history. `summary` is 0-filled before enough data has
             // accumulated after a fresh install; a 0 formats as "—" via
             // formatBytesCompact's 0.05 KB/s threshold, so no special-case
-            // blanking is needed here.
-            HStack(spacing: 6) {
-                Text(Loc.l("today peak"))
-                    .font(.system(size: 9))
-                    .foregroundColor(.secondary)
-                Text("↓ \(formatBytesCompact(bytes: summary.todayPeakIn))")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(.secondary)
-                Text("↑ \(formatBytesCompact(bytes: summary.todayPeakOut))")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text(Loc.l("Total today"))
-                    .font(.system(size: 9))
-                    .foregroundColor(.secondary)
-                Text("↓ \(formatBytesCompact(bytes: summary.todayInBytes))")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(.secondary)
-                Text("↑ \(formatBytesCompact(bytes: summary.todayOutBytes))")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundColor(.secondary)
-                // The combined figure. Without it the two arrows read as the
-                // total and the row answers "down how much, up how much" but
-                // never "how much altogether". Weight separates it from the
-                // two detail figures; the colour stays with the rest of the row.
-                Text("= \(formatBytesCompact(bytes: summary.todayTotalBytes))")
-                    .font(.system(size: 9, design: .monospaced))
-                    .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+            // blanking is needed here. Peak and ∑ share one row when both
+            // are visible; each hides independently.
+            if showPeak || showTotal {
+                HStack(spacing: 6) {
+                    if showPeak {
+                        Text(Loc.l("Today peak"))
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                        Text("↓ \(formatBytesCompact(bytes: summary.todayPeakIn))")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Text("↑ \(formatBytesCompact(bytes: summary.todayPeakOut))")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                    if showPeak && showTotal {
+                        Spacer()
+                    }
+                    if showTotal {
+                        Text(Loc.l("Today ∑"))
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                        Text("↓ \(formatBytesCompact(bytes: summary.todayInBytes))")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Text("↑ \(formatBytesCompact(bytes: summary.todayOutBytes))")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        // The combined figure. Without it the two arrows read as the
+                        // total and the row answers "down how much, up how much" but
+                        // never "how much altogether". Weight separates it from the
+                        // two detail figures; the colour stays with the rest of the row.
+                        Text("= \(formatBytesCompact(bytes: summary.todayTotalBytes))")
+                            .font(.system(size: 9, design: .monospaced))
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
 
             // A full-width, obvious entry to the standalone history window
@@ -86,35 +103,37 @@ struct HistoryView: View {
             // one grey mass. It is now a bordered, accent-tinted button that
             // lights up on hover, with its own divider to separate it from
             // those statistics.
-            Divider()
-                .padding(.top, 4)
+            if settings.showHistoryEntryInPopover {
+                Divider()
+                    .padding(.top, 4)
 
-            Button(action: { NSApp.sendAction(#selector(AppDelegate.showHistoryWindow), to: nil, from: nil) }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "chart.xyaxis.line")
-                        .font(.system(size: 11))
-                    Text(Loc.l("Open history statistics"))
-                        .font(.system(size: 11, weight: .medium))
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
+                Button(action: { NSApp.sendAction(#selector(AppDelegate.showHistoryWindow), to: nil, from: nil) }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.system(size: 11))
+                        Text(Loc.l("Open history statistics"))
+                            .font(.system(size: 11, weight: .medium))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundColor(appAccent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(appAccent.opacity(isHoveringEntry ? 0.16 : 0.07))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(appAccent.opacity(0.30), lineWidth: 0.5)
+                    )
+                    .contentShape(Rectangle())
                 }
-                .foregroundColor(appAccent)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(appAccent.opacity(isHoveringEntry ? 0.16 : 0.07))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(appAccent.opacity(0.30), lineWidth: 0.5)
-                )
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .onHover { isHoveringEntry = $0 }
+                .animation(.easeOut(duration: 0.12), value: isHoveringEntry)
             }
-            .buttonStyle(.plain)
-            .onHover { isHoveringEntry = $0 }
-            .animation(.easeOut(duration: 0.12), value: isHoveringEntry)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)

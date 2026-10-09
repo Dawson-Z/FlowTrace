@@ -31,7 +31,7 @@ struct InterfaceSummaryView: View {
 
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                Text(Loc.l("interface"))
+                Text(Loc.l("Interface"))
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)
                 Spacer()

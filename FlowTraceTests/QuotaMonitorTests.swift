@@ -180,4 +180,32 @@ final class QuotaMonitorTests: XCTestCase {
         XCTAssertTrue(monitor.firedKeys.isEmpty)
         XCTAssertNil(defaults.stringArray(forKey: firedKeysKey))
     }
+
+    // MARK: - daysRemainingInPeriod (popover header)
+
+    func testDaysRemainingInPeriod() throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Shanghai"))
+
+        func date(_ y: Int, _ m: Int, _ d: Int) -> Date {
+            var dc = DateComponents()
+            dc.year = y; dc.month = m; dc.day = d; dc.hour = 13
+            return cal.date(from: dc)!
+        }
+
+        // 2026-10-09 is a Friday; with the default firstWeekday (Sunday) the
+        // week runs Oct 4–10, the month Oct 1–31.
+        XCTAssertEqual(
+            QuotaMonitor.daysRemainingInPeriod(period: "month", now: date(2026, 10, 9), calendar: cal),
+            23, "Oct 9 → Nov 1 counts today, 23 days")
+        XCTAssertEqual(
+            QuotaMonitor.daysRemainingInPeriod(period: "month", now: date(2026, 10, 31), calendar: cal),
+            1, "the month's last day has only today left")
+        XCTAssertEqual(
+            QuotaMonitor.daysRemainingInPeriod(period: "week", now: date(2026, 10, 9), calendar: cal),
+            2, "Friday → week end Oct 11, 2 days left")
+        XCTAssertEqual(
+            QuotaMonitor.daysRemainingInPeriod(period: "day", now: date(2026, 10, 9), calendar: cal),
+            1, "a day period always has exactly today left")
+    }
 }

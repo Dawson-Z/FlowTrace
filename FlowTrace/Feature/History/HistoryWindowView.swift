@@ -14,7 +14,7 @@
 
 import SwiftUI
 
-private enum HistoryTab: String, CaseIterable, Identifiable {
+enum HistoryTab: String, CaseIterable, Identifiable {
     case appUsage
     case heatmap
     case alerts
@@ -30,8 +30,15 @@ private enum HistoryTab: String, CaseIterable, Identifiable {
     }
 }
 
+/// External handle for the window's selected tab — the same pattern as
+/// `SettingsTabSelection`. AppDelegate keeps the instance alive so a
+/// notification click can open the window directly on the alert log.
+final class HistoryTabSelection: ObservableObject {
+    @Published var tab: HistoryTab = .appUsage
+}
+
 struct HistoryWindowView: View {
-    @State private var tab: HistoryTab = .appUsage
+    @ObservedObject var selection: HistoryTabSelection
     @ObservedObject private var l10n = LocalizationManager.shared
     // Observe so appearance/accent changes re-render this window live.
     @ObservedObject private var settings = SettingsStore.shared
@@ -41,7 +48,7 @@ struct HistoryWindowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker("", selection: $tab) {
+            Picker("", selection: $selection.tab) {
                 ForEach(HistoryTab.allCases) { tab in
                     Text(Loc.l(tab.labelKey)).tag(tab)
                 }
@@ -52,7 +59,7 @@ struct HistoryWindowView: View {
             // runtime language change; rebuilding per locale re-renders them.
             .id(l10n.locale)
 
-            switch tab {
+            switch selection.tab {
             case .appUsage:
                 AppUsageView()
             case .heatmap:
@@ -153,7 +160,7 @@ private struct HistoryHeatmapTabView: View {
             // Row 3: interface-category filter — each checkbox is one network
             // interface's usage; all on = total external traffic summed.
             HStack(spacing: 10) {
-                Text(Loc.l("interface"))
+                Text(Loc.l("Interface"))
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 ForEach(InterfaceCategory.allCases) { category in

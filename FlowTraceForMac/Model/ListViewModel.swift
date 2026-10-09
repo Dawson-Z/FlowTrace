@@ -30,11 +30,11 @@ enum ListSortMode: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .name:          return "Name"
-        case .downloadRate:  return "Live download"
-        case .uploadRate:    return "Live upload"
-        case .todayDownload: return "Down today"
-        case .todayUpload:   return "Up today"
-        case .todayTotal:    return "Total today"
+        case .downloadRate:  return "Live ↓"
+        case .uploadRate:    return "Live ↑"
+        case .todayDownload: return "Today ↓"
+        case .todayUpload:   return "Today ↑"
+        case .todayTotal:    return "Today ∑"
         }
     }
 }

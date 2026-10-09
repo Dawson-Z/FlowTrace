@@ -142,6 +142,29 @@ final class SettingsStore: ObservableObject {
     /// "month" since that rename — the old, month-only key is migrated in
     /// `migrateRenamedDefaultsKeysIfNeeded`.
     @Published var showPeriodInMenuBar: Bool
+    /// Show the app mark in the menu bar. Forced on (and the Settings toggle
+    /// disabled) while every other segment is off, so the item never becomes
+    /// an empty slot; with any other segment visible it is a free choice.
+    /// Defaults to off.
+    @Published var showLogoInMenuBar: Bool
+
+    // MARK: - Popover modules
+    //
+    // Which modules the popover window renders. All default to on — these
+    // exist to let the user de-clutter, not to hide features by surprise.
+
+    /// The searchable process list (search bar + column headers + rows).
+    @Published var showProcessListInPopover: Bool
+    /// The per-interface-category summary above the sparkline.
+    @Published var showInterfacesInPopover: Bool
+    /// The 60-sample sparkline and its "last 2 min" caption row.
+    @Published var showSparklineInPopover: Bool
+    /// The "today peak" figures row inside the history block.
+    @Published var showTodayPeakInPopover: Bool
+    /// The "Today ∑" figures row inside the history block.
+    @Published var showTodayTotalInPopover: Bool
+    /// The accent "Open history statistics" button (with its divider).
+    @Published var showHistoryEntryInPopover: Bool
 
     // MARK: - Process traffic alerts
 
@@ -175,6 +198,13 @@ final class SettingsStore: ObservableObject {
         static let quotaCustomPercent         = "quotaCustomPercent"
         static let showTodayInMenuBar         = "showTodayInMenuBar"
         static let showPeriodInMenuBar        = "showPeriodInMenuBar"
+        static let showLogoInMenuBar          = "showLogoInMenuBar"
+        static let showProcessListInPopover   = "showProcessListInPopover"
+        static let showInterfacesInPopover    = "showInterfacesInPopover"
+        static let showSparklineInPopover     = "showSparklineInPopover"
+        static let showTodayPeakInPopover     = "showTodayPeakInPopover"
+        static let showTodayTotalInPopover    = "showTodayTotalInPopover"
+        static let showHistoryEntryInPopover  = "showHistoryEntryInPopover"
         static let uploadAlertEnabled         = "uploadAlertEnabled"
         static let alertDownloadMultiplier    = "alertDownloadMultiplier"
         static let alertUploadMultiplier      = "alertUploadMultiplier"
@@ -230,6 +260,13 @@ final class SettingsStore: ObservableObject {
         self._quotaCustomPercent      = Published(initialValue: defaults.object(forKey: K.quotaCustomPercent) as? Int ?? 0)
         self._showTodayInMenuBar      = Published(initialValue: defaults.object(forKey: K.showTodayInMenuBar) as? Bool ?? false)
         self._showPeriodInMenuBar     = Published(initialValue: defaults.object(forKey: K.showPeriodInMenuBar) as? Bool ?? false)
+        self._showLogoInMenuBar       = Published(initialValue: defaults.object(forKey: K.showLogoInMenuBar) as? Bool ?? false)
+        self._showProcessListInPopover  = Published(initialValue: defaults.object(forKey: K.showProcessListInPopover) as? Bool ?? true)
+        self._showInterfacesInPopover   = Published(initialValue: defaults.object(forKey: K.showInterfacesInPopover) as? Bool ?? true)
+        self._showSparklineInPopover    = Published(initialValue: defaults.object(forKey: K.showSparklineInPopover) as? Bool ?? true)
+        self._showTodayPeakInPopover    = Published(initialValue: defaults.object(forKey: K.showTodayPeakInPopover) as? Bool ?? true)
+        self._showTodayTotalInPopover   = Published(initialValue: defaults.object(forKey: K.showTodayTotalInPopover) as? Bool ?? true)
+        self._showHistoryEntryInPopover = Published(initialValue: defaults.object(forKey: K.showHistoryEntryInPopover) as? Bool ?? true)
         self._uploadAlertEnabled      = Published(initialValue: defaults.object(forKey: K.uploadAlertEnabled) as? Bool ?? false)
         self._alertDownloadMultiplier = Published(initialValue: defaults.object(forKey: K.alertDownloadMultiplier) as? Int ?? 10)
         self._alertUploadMultiplier   = Published(initialValue: defaults.object(forKey: K.alertUploadMultiplier) as? Int ?? 10)
@@ -311,6 +348,27 @@ final class SettingsStore: ObservableObject {
             .store(in: &cancellables)
         $showPeriodInMenuBar.dropFirst()
             .sink { [weak self] v in self?.defaults.set(v, forKey: K.showPeriodInMenuBar) }
+            .store(in: &cancellables)
+        $showLogoInMenuBar.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showLogoInMenuBar) }
+            .store(in: &cancellables)
+        $showProcessListInPopover.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showProcessListInPopover) }
+            .store(in: &cancellables)
+        $showInterfacesInPopover.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showInterfacesInPopover) }
+            .store(in: &cancellables)
+        $showSparklineInPopover.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showSparklineInPopover) }
+            .store(in: &cancellables)
+        $showTodayPeakInPopover.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showTodayPeakInPopover) }
+            .store(in: &cancellables)
+        $showTodayTotalInPopover.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showTodayTotalInPopover) }
+            .store(in: &cancellables)
+        $showHistoryEntryInPopover.dropFirst()
+            .sink { [weak self] v in self?.defaults.set(v, forKey: K.showHistoryEntryInPopover) }
             .store(in: &cancellables)
         $uploadAlertEnabled.dropFirst()
             .sink { [weak self] v in self?.defaults.set(v, forKey: K.uploadAlertEnabled) }

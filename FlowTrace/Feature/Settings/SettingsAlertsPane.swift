@@ -51,7 +51,7 @@ struct SettingsAlertsPane: View {
                         step: 100
                     )
                 }
-                SettingsNote(text: "Alerts when a process's daily traffic reaches the floor and exceeds its 7-day daily median by the multiplier. One alert per process per direction per day; see the alert log in history.")
+                SettingsNote(text: "Alerts when a process's daily traffic reaches the floor and exceeds its 7-day daily median by the multiplier — a process with no traffic in the past 7 days only needs to pass the floor. One alert per process per direction per day; see the alert log in history.")
             }
         }
         // Same reason as the Quota pane: refresh on every rebuild so the
